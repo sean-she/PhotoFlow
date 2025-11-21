@@ -156,11 +156,17 @@ Handles creation, configuration, and lifecycle management of photo albums.
 - **Outputs**: Updated album record
 - **Behavior**: Validate permissions, update fields, maintain audit trail
 
+#### Feature: Client Resubmission Control
+- **Description**: Allow photographer to manually enable resubmission for specific clients who have already submitted (requires album status to be OPEN)
+- **Inputs**: Album ID, client ID
+- **Outputs**: Updated client submission status (hasSubmitted=false, submittedAt=null)
+- **Behavior**: Validate album status is OPEN (block if CLOSED). Reset client's hasSubmitted to false and clear submittedAt timestamp, preserve existing selections, allow client to modify and resubmit selections, notify client of resubmission permission. Works before deadline (album already OPEN) or after deadline (album must be reopened to OPEN status first via Album Status Management).
+
 #### Feature: Album Status Management
 - **Description**: Open/close album review periods and handle emergency reopening
 - **Inputs**: Album ID, target status
-- **Outputs**: Updated status, timestamp
-- **Behavior**: Enforce business rules, prevent invalid state transitions, log changes
+- **Outputs**: Updated status, timestamp, auto-submission records (when closing)
+- **Behavior**: Enforce business rules, prevent invalid state transitions, log changes. When closing an album (setting status to CLOSED): identify clients with hasSubmitted=false, auto-submit their current selections (even if empty/zero selections), update hasSubmitted=true and set submittedAt timestamp, change album status to CLOSED, notify photographer with list of clients who were unsubmitted, notify each auto-submitted client of their submission. When reopening a CLOSED album, set album status to OPEN. After reopening, photographer must use Client Resubmission Control feature to allow specific clients to resubmit. Clients not allowed to resubmit can view photos in read-only mode but cannot modify selections.
 
 ### Capability: Photo Upload & Processing
 Handles photo uploads from Lightroom plugin, image processing, and storage management.
@@ -193,28 +199,34 @@ Handles photo uploads from Lightroom plugin, image processing, and storage manag
 Enables clients to browse, select, and submit their favorite photos.
 
 #### Feature: Photo Gallery Display
-- **Description**: Display responsive photo gallery with grid and detail views
+- **Description**: Display responsive photo gallery with grid and detail views, supports read-only mode when album is CLOSED
 - **Inputs**: Access token, album ID
-- **Outputs**: Photo list with thumbnails, metadata, selection state
-- **Behavior**: Authenticate token, fetch photos, format for display, handle pagination
+- **Outputs**: Photo list with thumbnails, metadata, selection state, read-only indicator
+- **Behavior**: Authenticate token, fetch photos, format for display, handle pagination. When album is CLOSED: display in read-only mode (selections visible but not modifiable). When album is OPEN: allow modifications if hasSubmitted=false or resubmission is allowed via Client Resubmission Control.
 
 #### Feature: Photo Selection Toggle
-- **Description**: Allow clients to select/deselect photos with visual feedback
+- **Description**: Allow clients to select/deselect photos with visual feedback, respects album status, deadline and resubmission permissions
 - **Inputs**: Access token, photo ID, selection state
-- **Outputs**: Updated selection record, selection count
-- **Behavior**: Validate token, update selection, maintain selection count, provide immediate feedback
+- **Outputs**: Updated selection record, selection count, error if blocked
+- **Behavior**: Validate token, check album status is OPEN (block if CLOSED), check deadline and resubmission permission (hasSubmitted must be false), update selection, maintain selection count, provide immediate feedback. Block if album is CLOSED regardless of hasSubmitted status. Previous selections remain visible and selected by default when resubmission is allowed.
 
 #### Feature: Selection Submission
 - **Description**: Lock client selections with final submission
 - **Inputs**: Access token, album ID
 - **Outputs**: Submission confirmation, locked status
-- **Behavior**: Validate deadline, lock all selections, prevent further changes, notify photographer
+- **Behavior**: Validate album status is OPEN (block if CLOSED), validate deadline (block if past deadline), set hasSubmitted=true and submittedAt timestamp, lock all selections, prevent further changes, notify photographer. Block if album is CLOSED regardless of deadline or resubmission permission. Resubmissions require album to be OPEN (reopen if CLOSED, then use Client Resubmission Control).
 
 #### Feature: Deadline Enforcement
-- **Description**: Prevent selections after album deadline
+- **Description**: Prevent selections and submissions after album deadline, allow read-only viewing
 - **Inputs**: Access token, current timestamp
-- **Outputs**: Access granted/denied, deadline status
-- **Behavior**: Check album deadline, compare with current time, enforce restrictions
+- **Outputs**: Access granted/denied, deadline status, view-only mode indicator
+- **Behavior**: Check album deadline, compare with current time. If deadline passed: block selection/submission actions, allow gallery viewing in read-only mode. When album is CLOSED after deadline, resubmission requires reopening album to OPEN status first, then using Client Resubmission Control to allow specific clients to resubmit.
+
+#### Feature: Deadline Auto-Submission
+- **Description**: Automatically submit all unsubmitted clients when album deadline passes via scheduled job (same auto-submission logic used when manually closing albums)
+- **Inputs**: Album ID, deadline timestamp
+- **Outputs**: Auto-submission records, notifications sent
+- **Behavior**: Scheduled job checks for passed deadlines periodically. For each album with passed deadline: identify clients with hasSubmitted=false, auto-submit their current selections (even if empty/zero selections), update hasSubmitted=true and set submittedAt timestamp, change album status to CLOSED, notify photographer with list of clients who were unsubmitted, notify each auto-submitted client of their submission. This same auto-submission logic is executed when photographer manually closes an album via Album Status Management.
 
 ### Capability: Selection Synchronization
 Syncs client selections back to Lightroom Classic via plugin.
@@ -247,10 +259,10 @@ Monitors client progress and sends automated communications.
 - **Behavior**: Query client submissions, calculate completion rates, format for display
 
 #### Feature: Email Notifications
-- **Description**: Send notifications for completion and deadline reminders
+- **Description**: Send notifications for completion, deadline reminders, deadline pass events, manual album closing, and resubmission permissions
 - **Inputs**: Event type, recipient email, album context
 - **Outputs**: Email delivery confirmation
-- **Behavior**: Generate email content, send via email service, track delivery status
+- **Behavior**: Generate email content, send via email service, track delivery status. Notify photographer when deadline passes with list of clients who were unsubmitted (before auto-submission occurs). Notify photographer when manually closing album with list of clients who were unsubmitted (before auto-submission occurs). Notify clients when: auto-submitted at deadline, auto-submitted during manual closing, manually allowed to resubmit, or album reopened and they are selected for resubmission.
 
 #### Feature: Reminder System
 - **Description**: Send automated reminders approaching deadlines
@@ -370,13 +382,15 @@ photoflow/
   ├── invitations.ts            # Client invitation
   ├── config.ts                # Album configuration
   ├── status.ts                # Status management
+  ├── resubmission.ts          # Client resubmission control
   └── index.ts                 # Public exports
   ```
 - **Exports**:
   - `createAlbum()` - Create new album
   - `addClient()` - Add client to album
   - `updateAlbumSettings()` - Update album configuration
-  - `updateAlbumStatus()` - Change album status
+  - `updateAlbumStatus()` - Change album status (OPEN/CLOSED)
+  - `allowClientResubmission()` - Enable resubmission for specific client (requires album status OPEN)
 
 ### Module: photos
 - **Maps to capability**: Photo Upload & Processing
@@ -406,6 +420,7 @@ photoflow/
   ├── toggle.ts                # Selection toggle
   ├── submit.ts                # Selection submission
   ├── deadline.ts              # Deadline enforcement
+  ├── auto-submit.ts            # Deadline auto-submission
   └── index.ts                 # Public exports
   ```
 - **Exports**:
@@ -413,6 +428,7 @@ photoflow/
   - `toggleSelection()` - Toggle photo selection
   - `submitSelections()` - Submit final selections
   - `checkDeadline()` - Validate deadline access
+  - `processDeadlineAutoSubmission()` - Auto-submit unsubmitted clients at deadline
 
 ### Module: sync
 - **Maps to capability**: Selection Synchronization
@@ -441,8 +457,10 @@ photoflow/
   ```
 - **Exports**:
   - `getProgress()` - Get album progress metrics
-  - `sendNotification()` - Send email notification
+  - `sendNotification()` - Send email notification (completion, deadline pass, resubmission permissions)
   - `sendReminders()` - Send deadline reminders
+  - `notifyDeadlinePass()` - Notify photographer of unsubmitted clients at deadline
+  - `notifyAutoSubmission()` - Notify clients of auto-submission
 
 ### Module: storage
 - **Maps to capability**: File Storage Management
@@ -602,12 +620,12 @@ Phase ordering follows topological sort of dependency graph.
 
 **Tasks**:
 - [ ] Album management module (depends on: [db, auth, utils])
-  - Acceptance criteria: Create/update albums, add clients, generate access tokens, manage status
-  - Test strategy: Unit tests for album operations, integration tests for client invitation flow
+  - Acceptance criteria: Create/update albums, add clients, generate access tokens, manage status (OPEN/CLOSED), client resubmission control (requires OPEN status)
+  - Test strategy: Unit tests for album operations, integration tests for client invitation flow, reopening workflow (status change then resubmission control)
 
 - [ ] Client selection module (depends on: [db, auth, utils])
-  - Acceptance criteria: Gallery display, selection toggle, submission locking, deadline enforcement
-  - Test strategy: Unit tests for selection logic, integration tests for submission flow
+  - Acceptance criteria: Gallery display, selection toggle, submission locking, deadline enforcement, deadline auto-submission, read-only mode after deadline
+  - Test strategy: Unit tests for selection logic, integration tests for submission flow, scheduled job tests for auto-submission
 
 - [ ] Selection sync module (depends on: [db, albums, selections, utils])
   - Acceptance criteria: Retrieve selections, aggregate multi-client data, format for plugin
@@ -626,8 +644,8 @@ Phase ordering follows topological sort of dependency graph.
 
 **Tasks**:
 - [ ] Notifications module (depends on: [db, albums, selections, utils])
-  - Acceptance criteria: Progress dashboard API, email notifications, reminder scheduling
-  - Test strategy: Unit tests for notification logic, integration tests for email delivery
+  - Acceptance criteria: Progress dashboard API, email notifications, reminder scheduling, deadline pass notifications, auto-submission notifications, resubmission permission notifications
+  - Test strategy: Unit tests for notification logic, integration tests for email delivery, scheduled job tests
 
 **Exit Criteria**: Progress can be tracked, notifications sent successfully
 
@@ -755,10 +773,14 @@ This section guides the AI when generating tests during the RED phase of TDD.
 **Happy path**:
 - Create album, add clients, generate access tokens
 - Expected: Album created, clients added, tokens generated
+- Photographer manually closes album
+- Expected: Unsubmitted clients auto-submitted, album status set to CLOSED, photographer and clients notified
 
 **Edge cases**:
 - Duplicate client emails, past deadlines, invalid album IDs
 - Expected: Validation errors, appropriate error messages
+- Closing album with all clients already submitted
+- Expected: Album status set to CLOSED, no auto-submission needed, photographer notified
 
 **Error cases**:
 - Database constraint violations, storage failures
@@ -789,18 +811,34 @@ This section guides the AI when generating tests during the RED phase of TDD.
 **Happy path**:
 - Client selects photos, submits selections
 - Expected: Selections saved, submission locked, photographer notified
+- Deadline passes, unsubmitted clients auto-submitted
+- Expected: All unsubmitted clients auto-submitted (even with zero selections), album status set to CLOSED, photographer and clients notified
+- Photographer manually closes album (before deadline)
+- Expected: All unsubmitted clients auto-submitted (even with zero selections), album status set to CLOSED, photographer and clients notified (same behavior as deadline auto-submission)
+- Photographer reopens album (sets status to OPEN), then uses Client Resubmission Control to allow specific clients
+- Expected: Album status is OPEN, selected clients can modify preserved selections (hasSubmitted reset to false), non-selected clients can view in read-only mode
+- Photographer allows specific client to resubmit manually (before deadline, album already OPEN)
+- Expected: Client's hasSubmitted reset to false, previous selections preserved and modifiable, client notified, album remains OPEN
 
 **Edge cases**:
-- Selection after deadline, duplicate selections, invalid tokens
-- Expected: Deadline enforcement, idempotent operations, token validation
+- Selection when album is CLOSED (blocked regardless of deadline or hasSubmitted status), duplicate selections, invalid tokens
+- Expected: Album status check (OPEN required), deadline enforcement, resubmission permission checks, idempotent operations, token validation
+- Client views gallery when album is CLOSED
+- Expected: Read-only mode, selections visible but not modifiable
+- Attempting Client Resubmission Control when album is CLOSED
+- Expected: Operation blocked, album must be reopened first
+- Reopening album but not using Client Resubmission Control
+- Expected: Album is OPEN, but all clients remain locked (hasSubmitted=true), read-only mode for all
 
 **Error cases**:
-- Database failures during submission, concurrent selections
-- Expected: Transaction safety, conflict resolution
+- Database failures during submission, concurrent selections, auto-submission job failures
+- Expected: Transaction safety, conflict resolution, retry logic for scheduled jobs
 
 **Integration points**:
 - Selection submission triggers notification
 - Expected: Email sent, progress updated
+- Deadline auto-submission triggers notifications
+- Expected: Photographer notified of unsubmitted clients, each client notified of auto-submission
 
 ### Selection Sync Module
 **Happy path**:
@@ -956,6 +994,7 @@ enum AlbumStatus {
 - **Storage**: Cloudflare R2
 - **Image Processing**: Sharp
 - **Authentication**: JWT, bcrypt (Google OAuth planned for future version)
+- **Scheduled Jobs**: Background job processing for deadline auto-submission (e.g., node-cron, Bull, or similar)
 
 ### Frontend
 - **Framework**: Next.js 14+ (App Router)
@@ -967,7 +1006,7 @@ enum AlbumStatus {
 ### Lightroom Plugin
 - **Language**: Lua
 - **SDK**: Lightroom Classic SDK
-- **HTTP Client**: Built-in Lua HTTP library
+- **HTTP Client**: LrHttp module (built-in SDK module for HTTP/HTTPS requests)
 
 **Decision: Next.js App Router**
 - **Rationale**: Modern React patterns, server components for performance, built-in API routes
@@ -1096,6 +1135,8 @@ Categories:
 - **Delta Sync**: Process of detecting and uploading only new/changed photos
 - **Selection**: A client's choice to include a photo in their final set
 - **Submission**: Final locking of client selections, preventing further changes
+- **Auto-Submission**: Automatic submission of unsubmitted clients when album deadline passes
+- **Resubmission**: Process of allowing a client who has already submitted to modify and resubmit their selections
 - **Review Photos**: Thumbnails and previews shared for client selection
 - **Final Photos**: High-resolution edited photos delivered after selection
 - **Lightroom Collection**: A grouping of photos within Lightroom Classic
