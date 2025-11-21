@@ -1,0 +1,133 @@
+{
+	"meta": {
+		"generatedAt": "2025-11-21T02:24:30.156Z",
+		"tasksAnalyzed": 15,
+		"totalTasks": 15,
+		"analysisCount": 15,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Design and Implement Database Schema with Prisma",
+			"complexityScore": 8,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down the schema design into entity-specific modeling, relationship mapping, constraint definition, migration setup, and seed data generation. For each subtask, specify the models involved, required constraints, and test cases for validation.",
+			"reasoning": "This task involves designing a foundational database schema with multiple entities, complex relationships, and constraints. It requires careful planning to ensure referential integrity, proper indexing, and migration safety. The use of Prisma ORM adds a layer of abstraction, but the underlying complexity of modeling real-world relationships and ensuring data consistency is high. The recommended subtasks align with best practices for schema-first development and provide clear separation of concerns."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Integrate Cloud Storage and CDN (Cloudflare R2)",
+			"complexityScore": 7,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Expand the integration into SDK setup, upload/download utilities, hierarchical organization, CDN URL generation, lifecycle policies, and provider abstraction. For each subtask, detail the API interactions, error handling strategies, and test scenarios for both unit and integration testing.",
+			"reasoning": "Integrating cloud storage and CDN involves multiple technical components, including SDK configuration, file handling, URL generation, and lifecycle management. The abstraction layer for future provider flexibility adds architectural complexity. While the individual components are well-documented, the integration and abstraction require careful design to ensure reliability and maintainability. The recommended subtasks cover all critical aspects of cloud storage integration."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Develop Shared Utilities Module",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand the utilities module into validation, error handling, and logging submodules. For each subtask, specify the libraries to use (e.g., Zod, Pino), the types of utilities to implement, and the test cases for edge scenarios.",
+			"reasoning": "Developing shared utilities is a foundational task that impacts the entire codebase. While the individual utilities (validation, error handling, logging) are relatively straightforward, ensuring they are reusable, well-tested, and maintainable across modules requires careful design. The recommended subtasks cover the core aspects of utility development and provide a clear path for implementation."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Implement Authentication & Authorization Module",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Break down the authentication module into password hashing, JWT management, login/refresh endpoints, middleware, client token generation, and session management. For each subtask, detail the security requirements, token handling, and test cases for authentication flows.",
+			"reasoning": "Authentication and authorization are critical security components that require careful implementation to prevent vulnerabilities. The module involves multiple layers, including password hashing, token management, middleware, and session tracking. The complexity is high due to the need for secure coding practices, proper error handling, and comprehensive testing. The recommended subtasks cover all essential aspects of authentication and authorization."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Build Photo Upload and Processing Pipeline",
+			"complexityScore": 7,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand the pipeline into multipart upload handling, image processing, and storage/database integration. For each subtask, specify the libraries to use (e.g., Multer, Sharp), the processing steps, and the test cases for file validation and error recovery.",
+			"reasoning": "Building a photo upload and processing pipeline involves handling multipart uploads, image processing, and storage integration. The pipeline must be robust to handle various file types, sizes, and potential errors. The complexity is moderate to high due to the need for efficient processing, error handling, and integration with external storage. The recommended subtasks cover the core components of the pipeline."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Develop Album Management Module",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down the album management module into CRUD endpoints, client invitation system, status management, resubmission control, and business rules validation. For each subtask, detail the API endpoints, business logic, and test cases for edge scenarios.",
+			"reasoning": "Album management involves multiple business rules, client interactions, and state transitions. The module requires careful design to ensure data consistency, proper validation, and user-friendly workflows. The complexity is high due to the need for robust business logic and integration with other modules. The recommended subtasks cover all critical aspects of album management."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Implement Client Photo Selection Module",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Expand the selection module into gallery display, selection/deselection logic, submission flow, deadline enforcement, and read-only mode. For each subtask, specify the API endpoints, business logic, and test cases for edge scenarios.",
+			"reasoning": "Client photo selection involves complex state management, deadline enforcement, and user interactions. The module requires careful design to ensure data consistency, proper validation, and user-friendly workflows. The complexity is high due to the need for robust business logic and integration with other modules. The recommended subtasks cover all critical aspects of client photo selection."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Develop Selection Synchronization Module",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand the synchronization module into selection retrieval API, aggregation service, and plugin data formatting. For each subtask, detail the API endpoints, aggregation logic, and test cases for edge scenarios.",
+			"reasoning": "Selection synchronization involves retrieving and aggregating data from multiple sources and formatting it for external consumption. The module requires careful design to ensure data consistency, efficient queries, and proper formatting. The complexity is moderate due to the need for robust data handling and integration with external systems. The recommended subtasks cover all critical aspects of selection synchronization."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Build Progress Tracking and Notification System",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand the notification system into dashboard API endpoints, email notification service, and scheduled jobs. For each subtask, detail the API endpoints, notification logic, and test cases for edge scenarios.",
+			"reasoning": "Progress tracking and notifications involve aggregating data, sending emails, and scheduling jobs. The module requires careful design to ensure data consistency, efficient queries, and reliable notifications. The complexity is moderate due to the need for robust data handling and integration with external systems. The recommended subtasks cover all critical aspects of progress tracking and notifications."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Implement File Storage Lifecycle Management",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Expand the lifecycle management into retention policies, background jobs, R2 lifecycle rules, and storage monitoring. For each subtask, detail the policy logic, job scheduling, and test cases for edge scenarios.",
+			"reasoning": "File storage lifecycle management involves defining retention policies, scheduling background jobs, and integrating with cloud storage lifecycle rules. The module requires careful design to ensure data consistency, efficient processing, and proper monitoring. The complexity is moderate due to the need for robust data handling and integration with external systems. The recommended subtasks cover all critical aspects of file storage lifecycle management."
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "Integrate CDN for Fast Photo Delivery",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand the CDN integration into URL generation, cache header configuration, and performance testing. For each subtask, detail the URL generation logic, cache header settings, and test cases for edge scenarios.",
+			"reasoning": "CDN integration involves generating URLs, configuring cache headers, and testing performance. The module requires careful design to ensure efficient delivery, proper caching, and reliable performance. The complexity is moderate due to the need for robust data handling and integration with external systems. The recommended subtasks cover all critical aspects of CDN integration."
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "Develop REST API Routes with OpenAPI Documentation",
+			"complexityScore": 7,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand the API development into route structure, endpoint implementation, and OpenAPI documentation. For each subtask, detail the route structure, endpoint logic, and test cases for edge scenarios.",
+			"reasoning": "Developing REST API routes with OpenAPI documentation involves designing a comprehensive API structure, implementing endpoints, and generating documentation. The module requires careful design to ensure data consistency, efficient queries, and proper documentation. The complexity is high due to the need for robust data handling and integration with external systems. The recommended subtasks cover all critical aspects of API development."
+		},
+		{
+			"taskId": 13,
+			"taskTitle": "Develop Lightroom Plugin for Photo Upload and Selection Sync",
+			"complexityScore": 7,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand the plugin development into plugin structure, photo upload, and selection synchronization. For each subtask, detail the plugin structure, upload logic, and test cases for edge scenarios.",
+			"reasoning": "Developing a Lightroom plugin involves creating a plugin structure, implementing photo upload, and selection synchronization. The module requires careful design to ensure data consistency, efficient processing, and proper integration with external systems. The complexity is high due to the need for robust data handling and integration with external systems. The recommended subtasks cover all critical aspects of plugin development."
+		},
+		{
+			"taskId": 14,
+			"taskTitle": "Build Photographer Dashboard Frontend (Next.js)",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Expand the dashboard development into album management UI, progress dashboard, client invitation flow, API integration, and responsive design. For each subtask, detail the UI components, API integration, and test cases for edge scenarios.",
+			"reasoning": "Building a photographer dashboard frontend involves creating UI components, integrating with APIs, and ensuring responsive design. The module requires careful design to ensure data consistency, efficient queries, and user-friendly workflows. The complexity is high due to the need for robust data handling and integration with external systems. The recommended subtasks cover all critical aspects of dashboard development."
+		},
+		{
+			"taskId": 15,
+			"taskTitle": "Build Client Photo Selection Interface (Next.js)",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Expand the client interface into gallery grid, selection toggle logic, submission flow, read-only mode, and mobile optimization. For each subtask, detail the UI components, selection logic, and test cases for edge scenarios.",
+			"reasoning": "Building a client photo selection interface involves creating a responsive gallery, implementing selection logic, and ensuring mobile optimization. The module requires careful design to ensure data consistency, efficient queries, and user-friendly workflows. The complexity is high due to the need for robust data handling and integration with external systems. The recommended subtasks cover all critical aspects of client interface development."
+		}
+	]
+}
