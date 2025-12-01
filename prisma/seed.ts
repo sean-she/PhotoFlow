@@ -1,0 +1,286 @@
+import { PrismaClient, AlbumStatus } from '../src/generated/prisma/client';
+import * as bcrypt from 'bcrypt';
+
+const prisma = new PrismaClient(undefined as any);
+
+async function main() {
+  console.log('🌱 Starting seed...');
+
+  // Clear existing data (for development only)
+  console.log('🧹 Clearing existing data...');
+  await prisma.photoSelection.deleteMany();
+  await prisma.photo.deleteMany();
+  await prisma.albumClient.deleteMany();
+  await prisma.album.deleteMany();
+  await prisma.user.deleteMany();
+
+  // Hash password for test users (password: "password123")
+  const hashedPassword = await bcrypt.hash('password123', 10);
+
+  // Create photographer users
+  console.log('👤 Creating photographer users...');
+  const photographer1 = await prisma.user.create({
+    data: {
+      email: 'photographer1@example.com',
+      passwordHash: hashedPassword,
+      name: 'John Photographer',
+    },
+  });
+
+  const photographer2 = await prisma.user.create({
+    data: {
+      email: 'photographer2@example.com',
+      passwordHash: hashedPassword,
+      name: 'Jane Smith',
+    },
+  });
+
+  console.log(`✅ Created ${2} photographers`);
+
+  // Create albums with various statuses
+  console.log('📸 Creating albums...');
+  const weddingAlbum = await prisma.album.create({
+    data: {
+      title: 'Summer Wedding 2024',
+      description: 'Beautiful outdoor wedding ceremony and reception',
+      status: AlbumStatus.OPEN,
+      userId: photographer1.id,
+    },
+  });
+
+  const portraitAlbum = await prisma.album.create({
+    data: {
+      title: 'Family Portraits',
+      description: 'Professional family portrait session',
+      status: AlbumStatus.OPEN,
+      userId: photographer1.id,
+    },
+  });
+
+  const draftAlbum = await prisma.album.create({
+    data: {
+      title: 'Corporate Event - Draft',
+      description: 'Company annual meeting photos',
+      status: AlbumStatus.DRAFT,
+      userId: photographer1.id,
+    },
+  });
+
+  const closedAlbum = await prisma.album.create({
+    data: {
+      title: 'Graduation Ceremony 2023',
+      description: 'High school graduation photos',
+      status: AlbumStatus.CLOSED,
+      userId: photographer2.id,
+    },
+  });
+
+  const archivedAlbum = await prisma.album.create({
+    data: {
+      title: 'Old Project Archive',
+      description: 'Archived project from 2022',
+      status: AlbumStatus.ARCHIVED,
+      userId: photographer2.id,
+    },
+  });
+
+  console.log(`✅ Created ${5} albums with various statuses`);
+
+  // Create photos for albums
+  console.log('🖼️  Creating photos...');
+  const weddingPhotos = await Promise.all([
+    prisma.photo.create({
+      data: {
+        filename: 'wedding-001.jpg',
+        originalFilename: 'DSC_001.jpg',
+        mimeType: 'image/jpeg',
+        size: 2456789,
+        width: 6000,
+        height: 4000,
+        storageKey: 'albums/wedding-001.jpg',
+        thumbnailStorageKey: 'albums/thumbnails/wedding-001.jpg',
+        albumId: weddingAlbum.id,
+        exifCameraMake: 'Nikon',
+        exifCameraModel: 'D850',
+        exifIso: 400,
+        exifFocalLength: 50.0,
+        exifAperture: 2.8,
+        exifShutterSpeed: '1/125',
+        exifDateTimeOriginal: new Date('2024-07-15T14:30:00Z'),
+      },
+    }),
+    prisma.photo.create({
+      data: {
+        filename: 'wedding-002.jpg',
+        originalFilename: 'DSC_002.jpg',
+        mimeType: 'image/jpeg',
+        size: 2234567,
+        width: 6000,
+        height: 4000,
+        storageKey: 'albums/wedding-002.jpg',
+        thumbnailStorageKey: 'albums/thumbnails/wedding-002.jpg',
+        albumId: weddingAlbum.id,
+        exifCameraMake: 'Nikon',
+        exifCameraModel: 'D850',
+        exifIso: 400,
+        exifFocalLength: 85.0,
+        exifAperture: 1.8,
+        exifShutterSpeed: '1/200',
+        exifDateTimeOriginal: new Date('2024-07-15T15:00:00Z'),
+      },
+    }),
+    prisma.photo.create({
+      data: {
+        filename: 'wedding-003.jpg',
+        originalFilename: 'DSC_003.jpg',
+        mimeType: 'image/jpeg',
+        size: 2678901,
+        width: 6000,
+        height: 4000,
+        storageKey: 'albums/wedding-003.jpg',
+        thumbnailStorageKey: 'albums/thumbnails/wedding-003.jpg',
+        albumId: weddingAlbum.id,
+        exifCameraMake: 'Nikon',
+        exifCameraModel: 'D850',
+        exifIso: 200,
+        exifFocalLength: 24.0,
+        exifAperture: 4.0,
+        exifShutterSpeed: '1/60',
+        exifDateTimeOriginal: new Date('2024-07-15T16:00:00Z'),
+      },
+    }),
+  ]);
+
+  const portraitPhotos = await Promise.all([
+    prisma.photo.create({
+      data: {
+        filename: 'portrait-001.jpg',
+        originalFilename: 'IMG_1001.jpg',
+        mimeType: 'image/jpeg',
+        size: 1890123,
+        width: 4000,
+        height: 6000,
+        storageKey: 'albums/portrait-001.jpg',
+        thumbnailStorageKey: 'albums/thumbnails/portrait-001.jpg',
+        albumId: portraitAlbum.id,
+        exifCameraMake: 'Canon',
+        exifCameraModel: 'EOS R5',
+        exifIso: 100,
+        exifFocalLength: 85.0,
+        exifAperture: 2.0,
+        exifShutterSpeed: '1/250',
+        exifDateTimeOriginal: new Date('2024-08-20T10:00:00Z'),
+      },
+    }),
+    prisma.photo.create({
+      data: {
+        filename: 'portrait-002.jpg',
+        originalFilename: 'IMG_1002.jpg',
+        mimeType: 'image/jpeg',
+        size: 1923456,
+        width: 4000,
+        height: 6000,
+        storageKey: 'albums/portrait-002.jpg',
+        thumbnailStorageKey: 'albums/thumbnails/portrait-002.jpg',
+        albumId: portraitAlbum.id,
+        exifCameraMake: 'Canon',
+        exifCameraModel: 'EOS R5',
+        exifIso: 100,
+        exifFocalLength: 85.0,
+        exifAperture: 2.0,
+        exifShutterSpeed: '1/200',
+        exifDateTimeOriginal: new Date('2024-08-20T10:15:00Z'),
+      },
+    }),
+  ]);
+
+  console.log(`✅ Created ${weddingPhotos.length + portraitPhotos.length} photos`);
+
+  // Create album clients
+  console.log('👥 Creating album clients...');
+  const client1 = await prisma.albumClient.create({
+    data: {
+      clientName: 'Sarah Johnson',
+      clientEmail: 'sarah.johnson@example.com',
+      accessToken: 'wedding-token-abc123xyz',
+      expiresAt: new Date('2025-12-31T23:59:59Z'),
+      albumId: weddingAlbum.id,
+    },
+  });
+
+  const client2 = await prisma.albumClient.create({
+    data: {
+      clientName: 'Michael Brown',
+      clientEmail: 'michael.brown@example.com',
+      accessToken: 'portrait-token-def456uvw',
+      expiresAt: new Date('2025-12-31T23:59:59Z'),
+      albumId: portraitAlbum.id,
+    },
+  });
+
+  const client3 = await prisma.albumClient.create({
+    data: {
+      clientName: 'Emily Davis',
+      clientEmail: 'emily.davis@example.com',
+      accessToken: 'wedding-token-ghi789rst',
+      expiresAt: null, // No expiration
+      albumId: weddingAlbum.id,
+    },
+  });
+
+  console.log(`✅ Created ${3} album clients`);
+
+  // Create photo selections
+  console.log('⭐ Creating photo selections...');
+  await prisma.photoSelection.create({
+    data: {
+      photoId: weddingPhotos[0].id,
+      clientId: client1.id,
+      notes: 'Love this one! Perfect for the save-the-date card.',
+    },
+  });
+
+  await prisma.photoSelection.create({
+    data: {
+      photoId: weddingPhotos[1].id,
+      clientId: client1.id,
+      notes: 'Great candid moment',
+    },
+  });
+
+  await prisma.photoSelection.create({
+    data: {
+      photoId: portraitPhotos[0].id,
+      clientId: client2.id,
+      notes: 'This is our favorite family photo',
+    },
+  });
+
+  await prisma.photoSelection.create({
+    data: {
+      photoId: weddingPhotos[2].id,
+      clientId: client3.id,
+      notes: null,
+    },
+  });
+
+  console.log(`✅ Created ${4} photo selections`);
+
+  console.log('✨ Seed completed successfully!');
+  console.log('\n📊 Summary:');
+  console.log(`   - ${2} photographers`);
+  console.log(`   - ${5} albums (DRAFT, OPEN, CLOSED, ARCHIVED)`);
+  console.log(`   - ${weddingPhotos.length + portraitPhotos.length} photos`);
+  console.log(`   - ${3} album clients`);
+  console.log(`   - ${4} photo selections`);
+}
+
+main()
+  .catch((e) => {
+    console.error('❌ Error during seed:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+

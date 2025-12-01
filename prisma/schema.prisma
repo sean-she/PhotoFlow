@@ -1,0 +1,142 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Album status enum for tracking album lifecycle
+enum AlbumStatus {
+  DRAFT // Album is being created/edited
+  OPEN // Album is active and clients can access it
+  CLOSED // Album is closed but still accessible
+  ARCHIVED // Album is archived and no longer active
+}
+
+/// User model for photographer accounts
+/// Handles authentication and user profile information
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash") // Hashed password using bcrypt or similar
+  name         String?
+  refreshToken String?  @map("refresh_token") // Optional refresh token for JWT authentication
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  albums Album[]
+
+  @@index([email])
+  @@map("users")
+}
+
+/// Album model for photo collections
+/// Represents a collection of photos that can be shared with clients
+model Album {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  status      AlbumStatus @default(DRAFT)
+  userId      String      @map("user_id") // Foreign key to photographer
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  // Relationships
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos       Photo[]
+  albumClients AlbumClient[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("albums")
+}
+
+/// Photo model for individual images
+/// Contains file metadata, storage references, and EXIF data
+model Photo {
+  id                  String   @id @default(cuid())
+  filename            String // Processed/stored filename
+  originalFilename    String   @map("original_filename") // Original upload filename
+  mimeType            String   @map("mime_type") // e.g., "image/jpeg", "image/png"
+  size                Int // File size in bytes
+  width               Int? // Image width in pixels
+  height              Int? // Image height in pixels
+  storageKey          String   @unique @map("storage_key") // S3/object storage key for full image
+  thumbnailStorageKey String?  @map("thumbnail_storage_key") // S3/object storage key for thumbnail
+  albumId             String   @map("album_id") // Foreign key to Album
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  // EXIF metadata fields (optional, extracted from image)
+  exifCameraMake       String?   @map("exif_camera_make")
+  exifCameraModel      String?   @map("exif_camera_model")
+  exifDateTimeOriginal DateTime? @map("exif_datetime_original")
+  exifIso              Int?      @map("exif_iso")
+  exifFocalLength      Float?    @map("exif_focal_length")
+  exifAperture         Float?    @map("exif_aperture")
+  exifShutterSpeed     String?   @map("exif_shutter_speed")
+
+  // Relationships
+  album           Album            @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  photoSelections PhotoSelection[]
+
+  @@index([albumId])
+  @@index([storageKey])
+  @@index([createdAt])
+  @@map("photos")
+}
+
+/// AlbumClient model for client access to albums
+/// Manages client authentication tokens and access permissions
+model AlbumClient {
+  id          String    @id @default(cuid())
+  clientName  String    @map("client_name")
+  clientEmail String    @map("client_email")
+  accessToken String    @unique @map("access_token") // Unique token for client access
+  expiresAt   DateTime? @map("expires_at") // Optional expiration date
+  albumId     String    @map("album_id") // Foreign key to Album
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relationships
+  album           Album            @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  photoSelections PhotoSelection[]
+
+  @@index([accessToken])
+  @@index([albumId])
+  @@index([expiresAt])
+  @@map("album_clients")
+}
+
+/// PhotoSelection model for tracking client photo selections
+/// Ensures unique selections per client per photo
+model PhotoSelection {
+  id            String   @id @default(cuid())
+  photoId       String   @map("photo_id") // Foreign key to Photo
+  clientId      String   @map("client_id") // Foreign key to AlbumClient
+  selectionDate DateTime @default(now()) @map("selection_date")
+  notes         String? // Optional client notes about the selection
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  photo  Photo       @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  client AlbumClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Composite unique constraint: one selection per client per photo
+  @@unique([photoId, clientId])
+  @@index([photoId])
+  @@index([clientId])
+  @@index([selectionDate])
+  @@map("photo_selections")
+}
