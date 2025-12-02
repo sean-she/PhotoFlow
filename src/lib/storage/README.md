@@ -34,6 +34,158 @@ const s3Client = getR2Client();
 const config = getR2Config();
 ```
 
+## Storage Provider Abstraction Layer
+
+The storage module includes a provider-agnostic abstraction layer that allows you to switch between different storage providers (R2, S3, Azure Blob, etc.) without changing your application code.
+
+### Basic Usage
+
+```typescript
+import {
+  getDefaultStorageProvider,
+  createStorageProvider,
+} from "@/lib/storage";
+
+// Get the default provider (uses environment variables)
+const provider = getDefaultStorageProvider();
+
+// Upload a file
+const result = await provider.uploadFile("path/to/file.jpg", fileBuffer, {
+  contentType: "image/jpeg",
+  metadata: { albumId: "123" },
+});
+
+// Download a file
+const downloadResult = await provider.downloadFileAsBuffer("path/to/file.jpg");
+
+// Check if file exists
+const exists = await provider.fileExists("path/to/file.jpg");
+
+// Delete a file
+await provider.deleteFile("path/to/file.jpg");
+```
+
+### Creating Custom Provider Instances
+
+```typescript
+import { createStorageProvider, R2StorageProvider } from "@/lib/storage";
+import type { R2Config } from "@/lib/storage";
+
+// Create provider with default configuration (from environment)
+const provider1 = createStorageProvider();
+
+// Create provider with custom R2 configuration
+const customR2Config: R2Config = {
+  accountId: "custom-account-id",
+  accessKeyId: "custom-key",
+  secretAccessKey: "custom-secret",
+  bucketName: "custom-bucket",
+  publicUrl: "https://custom-domain.com",
+};
+
+const provider2 = createStorageProvider({
+  type: "r2",
+  config: { r2: customR2Config },
+});
+
+// Or create R2 provider directly
+const provider3 = new R2StorageProvider(customR2Config);
+```
+
+### Provider Interface
+
+All storage providers implement the `StorageProvider` interface, which includes:
+
+- **Upload operations**: `uploadFile()`, `uploadFiles()`
+- **Download operations**: `downloadFile()`, `downloadFileAsBuffer()`, `downloadFileWithProgress()`
+- **File management**: `getFileMetadata()`, `fileExists()`, `deleteFile()`, `deleteFiles()`
+- **Listing**: `listFiles()`, `listFilesWithMetadata()`
+- **Copy operations**: `copyFile()`
+- **CDN URLs**: `generateCdnUrl()`
+
+### Migrating Between Providers
+
+The abstraction layer includes utilities for migrating data between different storage providers:
+
+```typescript
+import {
+  migrateBetweenProviders,
+  createStorageProvider,
+  compareProviders,
+} from "@/lib/storage";
+
+// Create source and destination providers
+const sourceProvider = createStorageProvider({ type: "r2" });
+const destProvider = createStorageProvider({ type: "s3" }); // Future: when S3 provider is implemented
+
+// Migrate files
+const result = await migrateBetweenProviders({
+  sourceProvider,
+  destinationProvider: destProvider,
+  prefix: "albums/",
+  verifyAfterMigration: true,
+  deleteSource: false, // Keep originals for safety
+  onProgress: (progress) => {
+    console.log(
+      `Migrated ${progress.processed}/${progress.total}: ${progress.current}`
+    );
+  },
+});
+
+console.log(`Migration complete: ${result.migrated} files migrated`);
+console.log(`Total bytes: ${result.totalBytes}`);
+console.log(`Duration: ${result.duration}ms`);
+```
+
+### Comparing Providers
+
+Compare files between two providers to verify migration or check for differences:
+
+```typescript
+const comparison = await compareProviders(
+  sourceProvider,
+  destProvider,
+  "albums/"
+);
+
+console.log(`Matching files: ${comparison.matching.length}`);
+console.log(`Missing in destination: ${comparison.missingInDestination.length}`);
+console.log(`Size mismatches: ${comparison.sizeMismatches.length}`);
+```
+
+### Implementing New Providers
+
+To add support for a new storage provider (e.g., AWS S3, Azure Blob Storage), implement the `StorageProvider` interface:
+
+```typescript
+import type { StorageProvider } from "@/lib/storage";
+
+export class S3StorageProvider implements StorageProvider {
+  readonly name = "s3";
+
+  async uploadFile(key: string, body: Buffer, options?: StorageUploadOptions) {
+    // Implementation
+  }
+
+  // ... implement all required methods
+}
+```
+
+Then register it in the factory (`provider-factory.ts`):
+
+```typescript
+case "s3":
+  return new S3StorageProvider(providerConfig.config?.s3);
+```
+
+### Benefits of the Abstraction Layer
+
+1. **Flexibility**: Switch storage providers without changing application code
+2. **Testing**: Easily mock storage providers for unit tests
+3. **Multi-provider support**: Use different providers for different environments
+4. **Migration**: Built-in utilities for migrating data between providers
+5. **Future-proofing**: Add new providers without refactoring existing code
+
 ## CDN URL Generation
 
 The storage module includes utilities for generating optimized CDN URLs for assets stored in R2.

@@ -3,7 +3,60 @@
  * 
  * This module provides access to Cloudflare R2 storage functionality.
  * All storage operations should go through the abstraction layer.
+ * 
+ * The storage provider abstraction layer allows switching between different
+ * storage providers (R2, S3, Azure, etc.) without changing application code.
  */
+
+// Storage Provider Abstraction Layer
+export * from "./provider";
+export {
+  StorageProviderError,
+} from "./provider";
+export type {
+  StorageProvider,
+  StorageUploadOptions,
+  StorageUploadResult,
+  StorageDownloadOptions,
+  StorageDownloadResult,
+  StorageDownloadBufferResult,
+  StorageFileMetadata,
+  StorageListOptions,
+  StorageListResult,
+  StorageListWithMetadataOptions,
+  StorageListWithMetadataResult,
+  StorageFileEntry,
+  StorageProgressCallback,
+  StorageBatchUploadItem,
+  StorageBatchUploadResult,
+} from "./provider";
+
+// Provider implementations
+export { R2StorageProvider } from "./providers/r2-provider";
+export { MockStorageProvider } from "./providers/mock-provider";
+
+// Provider factory
+export {
+  createStorageProvider,
+  getDefaultStorageProvider,
+  resetDefaultStorageProvider,
+  setDefaultStorageProvider,
+  getDefaultStorageProviderConfig,
+} from "./provider-factory";
+export type {
+  StorageProviderType,
+  StorageProviderConfig,
+} from "./provider-factory";
+
+// Provider migration utilities
+export {
+  migrateBetweenProviders,
+  compareProviders,
+} from "./provider-migration";
+export type {
+  ProviderMigrationOptions,
+  ProviderMigrationResult,
+} from "./provider-migration";
 
 // Configuration
 export * from "./r2-config";
