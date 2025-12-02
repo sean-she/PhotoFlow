@@ -1,0 +1,251 @@
+---
+description: Standard structure and style for test scripts in the scripts/ directory
+globs: scripts/test-*.ts, scripts/**/*test*.ts
+alwaysApply: true
+---
+
+- **Test Script Structure:**
+  All test scripts must follow the standardized structure used in [test-r2-organization.ts](mdc:scripts/test-r2-organization.ts) and [test-r2-cdn.ts](mdc:scripts/test-r2-cdn.ts).
+
+- **Required File Header:**
+  ```typescript
+  #!/usr/bin/env tsx
+  /**
+   * Test script for [feature/module name]
+   * 
+   * Tests [brief description of what is tested]
+   * 
+   * Usage:
+   *   tsx scripts/test-[name].ts
+   * 
+   * [Additional notes, e.g., environment requirements]
+   */
+
+  import "dotenv/config";
+  // ... other imports
+  ```
+
+- **Test Configuration:**
+  - Define test constants at the top of the file
+  - Use descriptive names prefixed with `TEST_`
+  ```typescript
+  // Test configuration
+  const TEST_ALBUM_ID = "test-album-123";
+  const TEST_PHOTO_ID = "test-photo-456";
+  ```
+
+- **Individual Test Functions:**
+  - Each test must be a separate function
+  - Function names must start with `test` followed by descriptive name
+  - Return `boolean` (synchronous) or `Promise<boolean>` (async)
+  - Use numbered test names: `test1Description`, `test2Description`, etc.
+  
+  ```typescript
+  /**
+   * Test 1: [Test description]
+   */
+  function testBasicPathGeneration(): boolean {
+    console.log("\n📋 Test 1: Basic Path Generation");
+    console.log("─".repeat(50));
+
+    try {
+      // Test implementation
+      // Validation logic
+      
+      console.log("✅ [Success message]");
+      return true;
+    } catch (error) {
+      console.error("❌ [Error message]:", error instanceof Error ? error.message : error);
+      return false;
+    }
+  }
+
+  /**
+   * Test 2: [Test description]
+   */
+  async function testAsyncOperation(): Promise<boolean> {
+    console.log("\n📋 Test 2: Async Operation");
+    console.log("─".repeat(50));
+
+    try {
+      // Async test implementation
+      // Validation logic
+      
+      console.log("✅ [Success message]");
+      return true;
+    } catch (error) {
+      console.error("❌ [Error message]:", error instanceof Error ? error.message : error);
+      return false;
+    }
+  }
+  ```
+
+- **Test Function Requirements:**
+  - **Console Output:**
+    - Start with `console.log("\n📋 Test N: [Name]")`
+    - Add separator: `console.log("─".repeat(50))`
+    - Use ✅ for success, ❌ for failure
+    - Include relevant test data in output (truncate long strings)
+  
+  - **Error Handling:**
+    - Wrap test logic in try/catch
+    - Use `error instanceof Error ? error.message : error` for error messages
+    - Always return `false` on error
+  
+  - **Validation:**
+    - Perform assertions/validations
+    - Return `true` only if all validations pass
+    - Log specific failure reasons
+
+- **Main Test Runner:**
+  - Must have a `runTests()` async function
+  - Collect results in an array: `Array<{ name: string; passed: boolean }>`
+  - Include cleanup operations before summary
+  - Show comprehensive summary with pass/fail counts
+  
+  ```typescript
+  /**
+   * Main test runner
+   */
+  async function runTests() {
+    console.log("🧪 [Test Suite Name]");
+    console.log("=".repeat(50));
+    console.log(`Test started at: ${new Date().toISOString()}\n`);
+
+    const results: Array<{ name: string; passed: boolean }> = [];
+
+    // Run all tests
+    results.push({ name: "Test 1 Name", passed: await test1() });
+    results.push({ name: "Test 2 Name", passed: await test2() });
+    // ... more tests
+
+    // Cleanup (if needed)
+    console.log("\n🧹 Cleanup");
+    console.log("─".repeat(50));
+    // cleanup operations
+    console.log("✅ Cleanup completed");
+
+    // Summary
+    console.log("\n" + "=".repeat(50));
+    console.log("📊 Test Summary");
+    console.log("=".repeat(50));
+
+    const passed = results.filter((r) => r.passed).length;
+    const total = results.length;
+
+    results.forEach((result) => {
+      const icon = result.passed ? "✅" : "❌";
+      console.log(`${icon} ${result.name}`);
+    });
+
+    console.log("\n" + "─".repeat(50));
+    console.log(`Total: ${passed}/${total} tests passed`);
+
+    if (passed === total) {
+      console.log("🎉 All tests passed!");
+      process.exit(0);
+    } else {
+      console.log("⚠️  Some tests failed. Please review the errors above.");
+      process.exit(1);
+    }
+  }
+
+  // Run tests
+  runTests().catch((error) => {
+    console.error("\n💥 Fatal error:", error);
+    process.exit(1);
+  });
+  ```
+
+- **Output Formatting:**
+  - Use emojis consistently: 📋 for test headers, ✅ for success, ❌ for failure, 🧹 for cleanup, 📊 for summary, 🎉 for all passed, ⚠️ for warnings, 💥 for fatal errors
+  - Use `"─".repeat(50)` for section separators
+  - Use `"=".repeat(50)` for major section headers
+  - Truncate long output (e.g., URLs) with `.substring(0, 80) + "..."`
+
+- **What NOT to Do:**
+  ```typescript
+  // ❌ DON'T: Put all tests in one function
+  async function testEverything() {
+    // test 1
+    // test 2
+    // test 3
+  }
+
+  // ❌ DON'T: Skip error handling
+  function testSomething(): boolean {
+    const result = someOperation();
+    return true; // No validation!
+  }
+
+  // ❌ DON'T: Use inconsistent formatting
+  console.log("Test 1");
+  console.log("---");
+  console.log("Test 2");
+  console.log("===");
+
+  // ❌ DON'T: Exit without summary
+  if (testPassed) {
+    process.exit(0);
+  }
+  ```
+
+- **Reference Examples:**
+  - [test-r2-organization.ts](mdc:scripts/test-r2-organization.ts) - Synchronous tests example
+  - [test-r2-cdn.ts](mdc:scripts/test-r2-cdn.ts) - Async tests example
+
+- **Package.json Script:**
+  - Add corresponding npm script: `"test:[name]": "tsx scripts/test-[name].ts"`
+  - Document in [scripts/README.md](mdc:scripts/README.md) if applicable
+
+- **Documentation Requirements:**
+  - **MUST update [scripts/README.md](mdc:scripts/README.md) when creating or updating test scripts**
+  - Add a new section for each test script following the existing format
+  - Include:
+    - Test name and description
+    - How to run the test (npm script and direct tsx command)
+    - What it tests (list of test cases)
+    - Expected output format
+    - Any special requirements or notes
+  - Follow the structure used in existing test documentation sections
+  - Place new test documentation after existing sections, before the Troubleshooting section
+  
+  ```markdown
+  ## [Test Name]
+  
+  Test script for [brief description].
+  
+  ### Running the Test
+  
+  ```bash
+  npm run test:[name]
+  ```
+  
+  Or directly with tsx:
+  
+  ```bash
+  tsx scripts/test-[name].ts
+  ```
+  
+  ### What It Tests
+  
+  1. **Test 1 Name** - Description
+  2. **Test 2 Name** - Description
+  // ... more tests
+  
+  ### Expected Output
+  
+  The script will output:
+  - ✅ for passed tests
+  - ❌ for failed tests
+  - A summary at the end showing total passed/failed
+  
+  ---
+  ```
+  
+  - **When to update:**
+    - ✅ Creating a new test script
+    - ✅ Adding new test cases to existing scripts
+    - ✅ Changing test behavior or output format
+    - ✅ Adding new npm scripts for tests
+    - ❌ DON'T skip documentation updates - it's required

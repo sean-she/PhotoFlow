@@ -11,7 +11,10 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "test:r2": "tsx scripts/test-r2-storage.ts"
+    "test:r2": "tsx scripts/test-r2-storage.ts",
+    "test:r2-org": "tsx scripts/test-r2-organization.ts",
+    "test:r2-cdn": "tsx scripts/test-r2-cdn.ts",
+    "test:r2-lifecycle": "tsx scripts/test-r2-lifecycle.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -19,6 +22,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.940.0",
     "@aws-sdk/lib-storage": "^3.940.0",
+    "@aws-sdk/s3-request-presigner": "^3.940.0",
     "@prisma/client": "^7.0.1",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",

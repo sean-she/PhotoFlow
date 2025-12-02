@@ -85,3 +85,47 @@ export type {
   ReorganizeOptions,
 } from "./migration";
 
+// CDN URL generation
+export * from "./cdn";
+export {
+  generateCdnUrl,
+  generateBulkCdnUrls,
+  generateThumbnailUrl,
+  generatePreviewUrl,
+  clearUrlCache,
+  cleanupUrlCache,
+} from "./cdn";
+export type {
+  ImageTransformParams,
+  CdnUrlOptions,
+  BulkCdnUrlOptions,
+} from "./cdn";
+
+// Lifecycle policies
+export * from "./lifecycle";
+export {
+  evaluateLifecyclePolicy,
+  collectFileMetadata,
+  executeLifecycleAction,
+  scanAndEvaluateLifecycle,
+  getAuditLog,
+  generateStorageUsageReport,
+  DEFAULT_LIFECYCLE_POLICY,
+  LifecycleAction,
+} from "./lifecycle";
+export type {
+  FileLifecycleMetadata,
+  LifecyclePolicyRule,
+  LifecycleRuleConditions,
+  LifecycleActionParams,
+  LifecycleSafeguards,
+  LifecyclePolicyConfig,
+  LifecycleEvaluationResult,
+  LifecycleExecutionResult,
+  LifecycleAuditLogEntry,
+  LifecycleScanOptions,
+  AuditLogFilterOptions,
+  StorageUsageReportOptions,
+  StorageUsageReport,
+} from "./lifecycle";
+
