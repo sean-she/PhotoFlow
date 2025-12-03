@@ -1,6 +1,6 @@
 # Error Handling Framework
 
-A comprehensive error handling framework for the PhotoFlow application, providing standardized error classes, utilities, and middleware for Express/Next.js.
+A comprehensive error handling framework for the PhotoFlow application, providing standardized error classes, utilities, and middleware for Next.js API routes.
 
 ## Features
 
@@ -8,7 +8,7 @@ A comprehensive error handling framework for the PhotoFlow application, providin
 - **HTTP Status Code Mapping**: Automatic status code assignment
 - **Error Serialization**: JSON serialization for logging and client responses
 - **Client-Safe Messages**: Automatic sanitization of sensitive information
-- **Express/Next.js Middleware**: Ready-to-use error handling middleware
+- **Next.js Middleware**: Ready-to-use error handling for Next.js API routes
 - **Type Safety**: Full TypeScript support with type inference
 
 ## Error Classes
@@ -171,38 +171,7 @@ if (shouldLogError(error)) {
 }
 ```
 
-## Express Middleware
 
-### Error Handler
-
-Add as the last middleware in your Express app:
-
-```typescript
-import express from "express";
-import { errorHandler } from "@/lib/errors";
-
-const app = express();
-
-// ... your routes ...
-
-app.use(errorHandler);
-```
-
-### Async Handler
-
-Wrap async route handlers to automatically catch errors:
-
-```typescript
-import { asyncHandler } from "@/lib/errors";
-
-router.get(
-  "/users",
-  asyncHandler(async (req, res) => {
-    const users = await getUsers();
-    res.json(users);
-  })
-);
-```
 
 ## Next.js API Routes
 

@@ -4,7 +4,7 @@
  * This module provides a comprehensive error handling framework with:
  * - Custom error classes (BaseError, ValidationError, etc.)
  * - Error utilities (serialization, status code mapping)
- * - Express/Next.js middleware for error handling
+ * - Next.js middleware for error handling
  */
 
 // Base error class
@@ -41,8 +41,6 @@ export {
 
 // Middleware
 export {
-  errorHandler,
-  asyncHandler,
   handleApiError,
   withErrorHandling,
 } from "./middleware";
