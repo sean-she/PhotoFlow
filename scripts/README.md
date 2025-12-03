@@ -95,6 +95,65 @@ The script will output:
 
 ---
 
+## R2 CDN URL Generation Test
+
+Test script for verifying CDN URL generation, including public URLs, signed URLs, image transformations, and bulk generation.
+
+### Running the Test
+
+```bash
+npm run test:r2-cdn
+```
+
+Or directly with tsx:
+
+```bash
+tsx scripts/test-r2-cdn.ts
+```
+
+### What It Tests
+
+1. **Configuration Check** - Verifies R2 configuration is loaded correctly
+2. **Public URL Generation** - Tests generating public CDN URLs
+3. **Signed URL Generation** - Tests generating signed URLs with expiration
+4. **Image Transformations** - Tests URL generation with image transformation parameters
+5. **Thumbnail URL Generation** - Tests convenience function for thumbnail URLs
+6. **Preview URL Generation** - Tests convenience function for preview URLs
+7. **URL Caching** - Tests URL caching performance
+8. **Bulk URL Generation** - Tests generating multiple URLs at once
+9. **Custom Query Parameters** - Tests adding custom query parameters to URLs
+10. **Signed URL with Transformations** - Tests signed URLs with image transformations
+11. **Various Transformations** - Tests different transformation options
+12. **CDN URL Integration - HTTP Request** - Tests actual HTTP requests to verify URLs work
+13. **Bulk URL Generation Performance** - Tests performance at scale (100, 500, 1000 URLs)
+
+### Expected Output
+
+The script will output:
+- ✅ for passed tests
+- ❌ for failed tests
+- ⚠️ for warnings (e.g., if HTTP requests fail due to access restrictions)
+- Performance metrics for bulk generation tests
+- A summary at the end showing total passed/failed
+
+### Test Details
+
+- Tests CDN URL generation with various options
+- Tests URL caching to improve performance
+- **Integration test** makes actual HTTP requests to verify URLs are accessible
+- **Performance test** measures bulk URL generation at different scales
+- Tests image transformation parameter formatting
+- Tests signed URL generation with expiration times
+- All tests require R2 credentials configured
+
+### Notes
+
+- The HTTP integration test requires the file to be publicly accessible
+- Performance tests clear the cache before each measurement for accuracy
+- Some tests may be skipped if R2 credentials or public access is not configured
+
+---
+
 ## R2 Lifecycle Policies Test
 
 Test script for verifying lifecycle policy evaluation, file scanning, and storage management features.
@@ -194,6 +253,68 @@ The script will output:
 - Tests factory pattern for provider creation and management
 - Tests all storage operations through the provider interface
 - Validates that the abstraction layer works correctly
+
+---
+
+## R2 Provider Integration Test
+
+Integration tests for the R2 storage provider implementation through the StorageProvider abstraction layer interface, verifying all operations work correctly with real R2 storage.
+
+### Running the Test
+
+```bash
+npm run test:r2-provider
+```
+
+Or directly with tsx:
+
+```bash
+tsx scripts/test-r2-provider-integration.ts
+```
+
+### What It Tests
+
+**Integration Tests (Requires R2 API calls):**
+
+1. **Configuration Check** - Verifies R2 configuration is loaded correctly
+2. **R2 Provider Creation** - Tests creating R2 provider through factory
+3. **R2 Provider - Upload** - Tests file upload through provider interface
+4. **R2 Provider - Download** - Tests file download through provider interface
+5. **R2 Provider - Metadata** - Tests metadata retrieval
+6. **R2 Provider - File Exists** - Tests file existence checks
+7. **R2 Provider - Batch Upload** - Tests batch upload operations
+8. **R2 Provider - List Files** - Tests file listing with and without metadata
+9. **R2 Provider - Delete** - Tests file deletion
+10. **R2 Provider - Copy** - Tests file copying
+11. **R2 Provider - CDN URL** - Tests CDN URL generation
+12. **R2 Provider - Error Handling** - Tests StorageProviderError handling
+13. **R2 Provider - Progress Callback** - Tests progress tracking during downloads
+14. **R2 Provider - Default Provider** - Tests default provider integration
+
+### Expected Output
+
+The script will output:
+- ✅ for passed tests
+- ❌ for failed tests
+- ⚠️ for warnings (e.g., if metadata preservation varies)
+- A summary at the end showing total passed/failed
+
+### Test Details
+
+- **R2 credentials required** - Tests real R2 storage operations
+- Tests the R2 provider implementation through the abstraction layer
+- Verifies all StorageProvider interface methods work correctly with R2
+- Tests error handling and type conversions
+- Tests default provider integration
+- Automatically cleans up test files after completion
+- Validates that the R2 provider correctly implements the StorageProvider interface
+
+### Notes
+
+- This test complements `test-provider-abstraction.ts` which tests the interface with mock provider
+- This test verifies the R2 provider implementation works correctly through the abstraction layer
+- All test files are automatically cleaned up after tests complete
+- Tests require R2 credentials configured in `.env` file
 
 ---
 

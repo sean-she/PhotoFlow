@@ -25,6 +25,7 @@ import {
   cleanupUrlCache,
   generatePhotoPath,
   FileType,
+  uploadFile,
 } from "../src/lib/storage";
 
 // Test configuration
@@ -476,6 +477,183 @@ async function testVariousTransformations(): Promise<boolean> {
 }
 
 /**
+ * Test 12: CDN URL Integration - Actual HTTP Request
+ * 
+ * Uses signed URLs since R2 buckets are private by default.
+ * Signed URLs work regardless of bucket public/private status.
+ */
+async function testCdnUrlIntegration(): Promise<boolean> {
+  console.log("\n🌐 Test 12: CDN URL Integration - HTTP Request");
+  console.log("─".repeat(50));
+
+  try {
+    // Upload a test file first
+    const testPath = generatePhotoPath({
+      albumId: TEST_ALBUM_ID,
+      photoId: `cdn-test-${Date.now()}`,
+      fileType: FileType.ORIGINAL,
+      filename: "test-cdn.txt",
+    });
+
+    const testContent = Buffer.from("CDN integration test file content");
+    await uploadFile(testPath, testContent, {
+      contentType: "text/plain",
+      // Note: R2 buckets are private by default, so we use signed URLs
+    });
+
+    console.log(`   Uploaded test file: ${testPath}`);
+
+    // Generate signed URL (works for both public and private buckets)
+    const signedUrl = await generateCdnUrl({
+      key: testPath,
+      signed: true,
+      expiresIn: 3600, // 1 hour
+    });
+
+    if (!signedUrl || !signedUrl.startsWith("http")) {
+      console.error(`❌ Invalid signed URL generated: ${signedUrl}`);
+      return false;
+    }
+
+    // Make HTTP request to verify URL works
+    try {
+      const response = await fetch(signedUrl, {
+        method: "GET",
+        headers: {
+          "User-Agent": "CDN-Integration-Test/1.0",
+        },
+      });
+
+      if (!response.ok) {
+        console.error(`❌ HTTP request failed: ${response.status} ${response.statusText}`);
+        console.error(`   URL: ${signedUrl.substring(0, 100)}...`);
+        return false;
+      }
+
+      const content = await response.text();
+      if (content !== testContent.toString("utf-8")) {
+        console.error("❌ Content mismatch - URL returned different content");
+        return false;
+      }
+
+      console.log("✅ CDN URL integration test passed");
+      console.log(`   URL: ${signedUrl.substring(0, 80)}...`);
+      console.log(`   Status: ${response.status} ${response.statusText}`);
+      console.log(`   Content-Type: ${response.headers.get("content-type") || "Not set"}`);
+      console.log(`   Content-Length: ${response.headers.get("content-length") || "Not set"}`);
+      console.log(`   Content matches: ✅`);
+      console.log(`   Note: Using signed URL (works for private buckets)`);
+
+      return true;
+    } catch (fetchError) {
+      console.error("❌ HTTP request failed:", fetchError instanceof Error ? fetchError.message : fetchError);
+      console.warn("⚠️  This may indicate network issues or R2 configuration problems");
+      return false;
+    }
+  } catch (error) {
+    console.error("❌ CDN URL integration test failed:", error instanceof Error ? error.message : error);
+    return false;
+  }
+}
+
+/**
+ * Test 13: Bulk URL Generation Performance at Scale
+ */
+async function testBulkUrlGenerationPerformance(): Promise<boolean> {
+  console.log("\n⚡ Test 13: Bulk URL Generation Performance at Scale");
+  console.log("─".repeat(50));
+
+  try {
+    // Generate test paths at different scales
+    const scales = [100, 500, 1000];
+    const results: Array<{
+      scale: number;
+      duration: number;
+      urlsPerSecond: number;
+      avgTimePerUrl: number;
+    }> = [];
+
+    for (const scale of scales) {
+      const testPaths: string[] = [];
+      for (let i = 0; i < scale; i++) {
+        testPaths.push(
+          generatePhotoPath({
+            albumId: `album-${Math.floor(i / 10)}`,
+            photoId: `photo-${i}`,
+            fileType: FileType.ORIGINAL,
+            filename: `photo-${i}.jpg`,
+          })
+        );
+      }
+
+      // Clear cache before each test for accurate measurement
+      clearUrlCache();
+
+      const start = performance.now();
+      const bulkUrls = await generateBulkCdnUrls({
+        keys: testPaths,
+        baseOptions: {
+          transform: {
+            width: 500,
+            format: "webp",
+            quality: 90,
+          },
+        },
+        parallel: true,
+      });
+      const end = performance.now();
+
+      const duration = end - start;
+      const urlsPerSecond = (scale / duration) * 1000;
+      const avgTimePerUrl = duration / scale;
+
+      results.push({
+        scale,
+        duration,
+        urlsPerSecond,
+        avgTimePerUrl,
+      });
+
+      if (bulkUrls.size !== scale) {
+        console.error(`❌ Expected ${scale} URLs, got ${bulkUrls.size}`);
+        return false;
+      }
+
+      console.log(`✅ Scale ${scale}:`);
+      console.log(`   Duration: ${duration.toFixed(2)}ms`);
+      console.log(`   URLs/second: ${urlsPerSecond.toFixed(2)}`);
+      console.log(`   Avg time/URL: ${avgTimePerUrl.toFixed(3)}ms`);
+    }
+
+    // Performance analysis
+    console.log("\n📊 Performance Analysis:");
+    console.log("─".repeat(50));
+    results.forEach((result) => {
+      console.log(`   ${result.scale} URLs: ${result.duration.toFixed(2)}ms (${result.urlsPerSecond.toFixed(2)} URLs/s)`);
+    });
+
+    // Check if performance degrades significantly at scale
+    const firstResult = results[0];
+    const lastResult = results[results.length - 1];
+    const performanceRatio = lastResult.avgTimePerUrl / firstResult.avgTimePerUrl;
+
+    if (performanceRatio > 5) {
+      console.warn(`⚠️  Performance degradation detected: ${performanceRatio.toFixed(2)}x slower at scale`);
+    } else {
+      console.log(`✅ Performance scales well (${performanceRatio.toFixed(2)}x ratio)`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error(
+      "❌ Bulk URL generation performance test failed:",
+      error instanceof Error ? error.message : error
+    );
+    return false;
+  }
+}
+
+/**
  * Main test runner
  */
 async function runTests() {
@@ -497,6 +675,8 @@ async function runTests() {
   results.push({ name: "Custom Query Parameters", passed: await testCustomQueryParameters() });
   results.push({ name: "Signed URL with Transformations", passed: await testSignedUrlWithTransformations() });
   results.push({ name: "Various Transformations", passed: await testVariousTransformations() });
+  results.push({ name: "CDN URL Integration - HTTP Request", passed: await testCdnUrlIntegration() });
+  results.push({ name: "Bulk URL Generation Performance", passed: await testBulkUrlGenerationPerformance() });
 
   // Cleanup
   console.log("\n🧹 Cleanup");

@@ -16,6 +16,7 @@
     "test:r2-cdn": "tsx scripts/test-r2-cdn.ts",
     "test:r2-lifecycle": "tsx scripts/test-r2-lifecycle.ts",
     "test:provider": "tsx scripts/test-provider-abstraction.ts",
+    "test:r2-provider": "tsx scripts/test-r2-provider-integration.ts",
     "test:provider-migration": "tsx scripts/test-provider-migration.ts",
     "test:provider-performance": "tsx scripts/test-provider-performance.ts"
   },

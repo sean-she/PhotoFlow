@@ -273,10 +273,23 @@ export async function fileExists(storageKey: string): Promise<boolean> {
     await client.send(command);
     return true;
   } catch (error) {
-    // If error is 404, file doesn't exist
-    if (error instanceof Error && error.message.includes("NotFound")) {
+    // Check for 404/NotFound errors (file doesn't exist)
+    const isNotFound =
+      // Check error name (AWS SDK v3 uses name property)
+      (error instanceof Error && error.name === "NotFound") ||
+      // Check error message (fallback for different error formats)
+      (error instanceof Error && error.message.includes("NotFound")) ||
+      // Check HTTP status code (AWS SDK v3 errors have $metadata)
+      (error &&
+        typeof error === "object" &&
+        "$metadata" in error &&
+        typeof (error as any).$metadata === "object" &&
+        (error as any).$metadata.httpStatusCode === 404);
+
+    if (isNotFound) {
       return false;
     }
+
     // Re-throw other errors
     throw error;
   }

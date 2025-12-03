@@ -374,11 +374,39 @@ export class R2StorageProvider implements StorageProvider {
   }
 
   async fileExists(key: string): Promise<boolean> {
-    return await r2FileExists(key);
+    try {
+      return await r2FileExists(key);
+    } catch (error) {
+      // Extract error message from various error types
+      let errorMessage = "Unknown error";
+      if (error instanceof Error) {
+        errorMessage = error.message || error.name || "Unknown error";
+      } else if (error && typeof error === "object") {
+        // Try to extract message from error object
+        const err = error as any;
+        errorMessage = err.message || err.name || String(error);
+      } else {
+        errorMessage = String(error);
+      }
+
+      // Convert any errors to StorageProviderError
+      throw new StorageProviderError(
+        `Failed to check file existence: ${errorMessage}`,
+        key,
+        error instanceof Error ? error : undefined
+      );
+    }
   }
 
   async deleteFile(key: string): Promise<boolean> {
     try {
+      // Check if file exists first (DeleteObjectCommand is idempotent and always succeeds)
+      const exists = await this.fileExists(key);
+      if (!exists) {
+        return false;
+      }
+
+      // File exists, proceed with deletion
       const command = new DeleteObjectCommand({
         Bucket: this.config.bucketName,
         Key: key,
@@ -387,16 +415,21 @@ export class R2StorageProvider implements StorageProvider {
       await this.client.send(command);
       return true;
     } catch (error) {
-      // If error is 404, file doesn't exist (consider it deleted)
-      if (
-        error instanceof Error &&
-        (error.message.includes("NotFound") ||
-          error.message.includes("NoSuchKey"))
-      ) {
-        return false;
+      // Extract error message from various error types
+      let errorMessage = "Unknown error";
+      if (error instanceof Error) {
+        errorMessage = error.message || error.name || "Unknown error";
+      } else if (error && typeof error === "object") {
+        // Try to extract message from error object
+        const err = error as any;
+        errorMessage = err.message || err.name || String(error);
+      } else {
+        errorMessage = String(error);
       }
+
+      // Convert errors to StorageProviderError
       throw new StorageProviderError(
-        `Failed to delete file: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to delete file: ${errorMessage}`,
         key,
         error instanceof Error ? error : undefined
       );
