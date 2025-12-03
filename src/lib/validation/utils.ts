@@ -6,40 +6,10 @@
 
 import { z } from "zod";
 import type { ZodError, ZodSchema } from "zod";
+import { ValidationError } from "../errors/validation";
 
-/**
- * Custom validation error with formatted messages
- */
-export class ValidationError extends Error {
-  constructor(
-    public readonly errors: Record<string, string[]>,
-    message = "Validation failed"
-  ) {
-    super(message);
-    this.name = "ValidationError";
-  }
-
-  /**
-   * Get first error message for a field
-   */
-  getFieldError(field: string): string | undefined {
-    return this.errors[field]?.[0];
-  }
-
-  /**
-   * Check if a field has errors
-   */
-  hasFieldError(field: string): boolean {
-    return field in this.errors && this.errors[field].length > 0;
-  }
-
-  /**
-   * Get all error messages as a flat array
-   */
-  getAllErrors(): string[] {
-    return Object.values(this.errors).flat();
-  }
-}
+// Re-export ValidationError for convenience
+export { ValidationError };
 
 /**
  * Format Zod errors into a structured format

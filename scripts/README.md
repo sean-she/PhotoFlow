@@ -414,6 +414,138 @@ The script will output:
 
 ---
 
+## Validation Utilities Test
+
+Test script for Zod-based validation schemas and utility functions.
+
+### Running the Test
+
+```bash
+npm run test:validation
+```
+
+Or directly with tsx:
+
+```bash
+tsx scripts/test-validation.ts
+```
+
+### What It Tests
+
+**Common Schemas:**
+1. **CUID Validation** - Validates CUID format used by Prisma
+2. **Email Validation** - Validates email addresses
+3. **Pagination Schema** - Tests pagination parameters with defaults and type coercion
+4. **Date Range Schema** - Tests date range filtering with validation
+
+**User Schemas:**
+5. **User Registration Schema** - Tests user registration with email and password validation
+6. **Password Schema Edge Cases** - Tests password requirements (uppercase, lowercase, numbers, min length)
+
+**Album Schemas:**
+7. **Album Creation Schema** - Tests album creation with title, description, and status validation
+
+**Photo Schemas:**
+8. **Photo Upload Metadata Schema** - Tests photo upload metadata including MIME type validation
+
+**Client Schemas:**
+9. **Access Token Schema** - Tests client access token validation (minimum 32 characters)
+10. **Batch Photo Selection Schema** - Tests batch photo selection with array validation
+
+**Utility Functions:**
+11. **Validate Function** - Tests validate() with ValidationError throwing
+12. **Safe Validate Function** - Tests safeValidate() returning result objects
+13. **Error Formatting** - Tests formatZodError() for structured error messages
+14. **ValidationError Methods** - Tests ValidationError class methods (getFieldError, hasFieldError, getAllErrors)
+15. **Request Validation Helpers** - Tests validateBody(), validateQuery(), validateParams()
+16. **Custom Error Messages** - Tests withCustomMessages() for custom error messages
+17. **Validation Pipeline** - Tests createValidationPipeline() for chaining schemas
+
+**Edge Cases:**
+18. **Type Coercion** - Tests automatic type coercion (string to number, string to date)
+19. **Empty Input Handling** - Tests handling of empty strings, null, undefined
+20. **Malformed Data Handling** - Tests handling of wrong types, extra fields, nested malformed data
+
+### Expected Output
+
+The script will output:
+- ✅ for passed tests
+- ❌ for failed tests
+- A summary at the end showing total passed/failed
+
+### Test Details
+
+- **No external dependencies required** - Pure unit tests for validation logic
+- Tests all validation schemas covering users, albums, photos, and clients
+- Tests utility functions for validation and error handling
+- Tests edge cases including empty inputs, malformed data, and type coercion
+- Validates error formatting and custom error message functionality
+- Tests request validation helpers for Express/Next.js integration
+
+---
+
+## Error Handling Framework Test
+
+Test script for error handling framework including error classes, utilities, and serialization.
+
+### Running the Test
+
+```bash
+npm run test:errors
+```
+
+Or directly with tsx:
+
+```bash
+tsx scripts/test-errors.ts
+```
+
+### What It Tests
+
+**Error Classes:**
+1. **BaseError Basic Functionality** - Tests BaseError properties, status codes, and timestamps
+2. **BaseError Serialization** - Tests toJSON() and toClientJSON() methods with stack traces and context
+3. **BaseError Client Message** - Tests getClientMessage() for operational vs non-operational errors
+4. **ValidationError** - Tests ValidationError with field-level errors and serialization
+5. **AuthenticationError** - Tests AuthenticationError with 401 status code
+6. **AuthorizationError** - Tests AuthorizationError with 403 status code
+7. **TokenError** - Tests TokenError for invalid/expired tokens
+8. **NotFoundError** - Tests NotFoundError with resource and identifier
+9. **ConflictError** - Tests ConflictError for duplicate resource conflicts
+
+**Error Utilities:**
+10. **isBaseError Utility** - Tests type checking for BaseError instances
+11. **isValidationError Utility** - Tests type checking for ValidationError instances
+12. **toBaseError Utility** - Tests error conversion (Error, ZodError, strings to BaseError)
+13. **getErrorStatusCode Utility** - Tests HTTP status code extraction from errors
+14. **serializeErrorForLogging Utility** - Tests error serialization with stack traces for logging
+15. **serializeErrorForClient Utility** - Tests client-safe error serialization
+16. **shouldLogError Utility** - Tests whether errors should be logged (operational vs non-operational)
+17. **getClientErrorMessage Utility** - Tests client-safe error message generation
+
+**Error Framework:**
+18. **Error Inheritance and Polymorphism** - Tests that all error types extend BaseError and work with utilities
+19. **Error Context Handling** - Tests context inclusion/exclusion in serialization based on includeDetails flag
+20. **HTTP Status Code Enum** - Tests HttpStatusCode enum values and validation
+
+### Expected Output
+
+The script will output:
+- ✅ for passed tests
+- ❌ for failed tests
+- A summary at the end showing total passed/failed
+
+### Test Details
+
+- **No external dependencies required** - Pure unit tests for error handling logic
+- Tests all error classes (BaseError, ValidationError, AuthenticationError, etc.)
+- Tests error utilities (serialization, status code mapping, client-safe messages)
+- Tests error inheritance and polymorphism
+- Validates error context handling and serialization options
+- Tests HTTP status code enum values
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
