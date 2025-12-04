@@ -33,6 +33,21 @@ import {
 import { z } from "zod";
 
 /**
+ * Test helper class for BaseError
+ * Since BaseError is abstract, we need a concrete class for testing
+ */
+class TestBaseError extends BaseError {
+  constructor(
+    message: string,
+    statusCode: HttpStatusCode = HttpStatusCode.INTERNAL_SERVER_ERROR,
+    isOperational = true,
+    context?: Record<string, unknown>
+  ) {
+    super(message, statusCode, isOperational, context);
+  }
+}
+
+/**
  * Test 1: BaseError basic functionality
  */
 function testBaseErrorBasic(): boolean {
@@ -176,8 +191,8 @@ function testBaseErrorClientMessage(): boolean {
   try {
     // Operational error
     class OperationalError extends BaseError {
-      constructor(message: string) {
-        super(message, HttpStatusCode.BAD_REQUEST, true);
+      constructor(message: string, context?: Record<string, unknown>) {
+        super(message, HttpStatusCode.BAD_REQUEST, true, context);
       }
     }
 
@@ -203,8 +218,7 @@ function testBaseErrorClientMessage(): boolean {
     }
 
     // Operational error with context
-    const errorWithContext = new OperationalError("Error with context");
-    errorWithContext.context = { field: "value" };
+    const errorWithContext = new OperationalError("Error with context", { field: "value" });
     const messageWithContext = errorWithContext.getClientMessage(true);
     if (!messageWithContext.includes("field: value")) {
       console.error(`❌ Error with context should include context in message`);
@@ -468,7 +482,7 @@ function testIsBaseError(): boolean {
   console.log("─".repeat(50));
 
   try {
-    const baseError = new BaseError("Test", HttpStatusCode.BAD_REQUEST);
+    const baseError = new TestBaseError("Test", HttpStatusCode.BAD_REQUEST);
     const validationError = new ValidationError({ field: ["error"] });
     const regularError = new Error("Regular error");
     const stringError = "String error";
@@ -516,7 +530,7 @@ function testIsValidationError(): boolean {
 
   try {
     const validationError = new ValidationError({ field: ["error"] });
-    const baseError = new BaseError("Test", HttpStatusCode.BAD_REQUEST);
+    const baseError = new TestBaseError("Test", HttpStatusCode.BAD_REQUEST);
     const regularError = new Error("Regular error");
 
     if (!isValidationError(validationError)) {
@@ -551,7 +565,7 @@ function testToBaseError(): boolean {
 
   try {
     // BaseError should be returned as-is
-    const baseError = new BaseError("Test", HttpStatusCode.BAD_REQUEST);
+    const baseError = new TestBaseError("Test", HttpStatusCode.BAD_REQUEST);
     const converted1 = toBaseError(baseError);
     if (converted1 !== baseError) {
       console.error(`❌ toBaseError should return BaseError as-is`);
@@ -621,7 +635,7 @@ function testGetErrorStatusCode(): boolean {
   console.log("─".repeat(50));
 
   try {
-    const baseError = new BaseError("Test", HttpStatusCode.BAD_REQUEST);
+    const baseError = new TestBaseError("Test", HttpStatusCode.BAD_REQUEST);
     if (getErrorStatusCode(baseError) !== HttpStatusCode.BAD_REQUEST) {
       console.error(`❌ getErrorStatusCode should return error's status code`);
       return false;
@@ -661,11 +675,11 @@ function testSerializeErrorForLogging(): boolean {
   console.log("─".repeat(50));
 
   try {
-    const baseError = new BaseError("Test", HttpStatusCode.BAD_REQUEST, true, { field: "value" });
+    const baseError = new TestBaseError("Test", HttpStatusCode.BAD_REQUEST, true, { field: "value" });
     const serialized = serializeErrorForLogging(baseError);
 
-    if (serialized.name !== "BaseError") {
-      console.error(`❌ Serialized error name mismatch`);
+    if (serialized.name !== "TestBaseError") {
+      console.error(`❌ Serialized error name mismatch. Expected: "TestBaseError", Got: ${serialized.name}`);
       return false;
     }
 
@@ -705,12 +719,12 @@ function testSerializeErrorForClient(): boolean {
   console.log("─".repeat(50));
 
   try {
-    const baseError = new BaseError("Test", HttpStatusCode.BAD_REQUEST, true, { field: "value" });
+    const baseError = new TestBaseError("Test", HttpStatusCode.BAD_REQUEST, true, { field: "value" });
 
     // Without details
     const serialized1 = serializeErrorForClient(baseError, false);
-    if (serialized1.name !== "BaseError") {
-      console.error(`❌ Client serialized error name mismatch`);
+    if (serialized1.name !== "TestBaseError") {
+      console.error(`❌ Client serialized error name mismatch. Expected: "TestBaseError", Got: ${serialized1.name}`);
       return false;
     }
     if (serialized1.message !== "Test") {
@@ -754,14 +768,14 @@ function testShouldLogError(): boolean {
 
   try {
     // Non-operational error should be logged
-    const nonOperationalError = new BaseError("Test", HttpStatusCode.INTERNAL_SERVER_ERROR, false);
+    const nonOperationalError = new TestBaseError("Test", HttpStatusCode.INTERNAL_SERVER_ERROR, false);
     if (!shouldLogError(nonOperationalError)) {
       console.error(`❌ Non-operational errors should be logged`);
       return false;
     }
 
     // Operational error should not be logged (expected errors)
-    const operationalError = new BaseError("Test", HttpStatusCode.BAD_REQUEST, true);
+    const operationalError = new TestBaseError("Test", HttpStatusCode.BAD_REQUEST, true);
     if (shouldLogError(operationalError)) {
       console.error(`❌ Operational errors should not be logged by default`);
       return false;
@@ -791,7 +805,7 @@ function testGetClientErrorMessage(): boolean {
 
   try {
     // BaseError
-    const baseError = new BaseError("Test message", HttpStatusCode.BAD_REQUEST, true);
+    const baseError = new TestBaseError("Test message", HttpStatusCode.BAD_REQUEST, true);
     const message1 = getClientErrorMessage(baseError, false);
     if (message1 !== "Test message") {
       console.error(`❌ getClientErrorMessage should return error message for BaseError`);
@@ -799,7 +813,7 @@ function testGetClientErrorMessage(): boolean {
     }
 
     // Non-operational error
-    const nonOperationalError = new BaseError("Internal", HttpStatusCode.INTERNAL_SERVER_ERROR, false);
+    const nonOperationalError = new TestBaseError("Internal", HttpStatusCode.INTERNAL_SERVER_ERROR, false);
     const message2 = getClientErrorMessage(nonOperationalError, false);
     if (message2 !== "An unexpected error occurred") {
       console.error(`❌ getClientErrorMessage should return generic message for non-operational errors`);
@@ -901,7 +915,7 @@ function testErrorContext(): boolean {
       resource: "album",
     };
 
-    const error = new BaseError("Test", HttpStatusCode.BAD_REQUEST, true, context);
+    const error = new TestBaseError("Test", HttpStatusCode.BAD_REQUEST, true, context);
 
     // Context should be included in JSON
     const json = error.toJSON(false, true);
