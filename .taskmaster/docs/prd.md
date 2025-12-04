@@ -312,8 +312,18 @@ The goal: Create a clear mapping between "what it does" (functional) and "where 
 
 ```
 photoflow/
-├── backend/
-│   ├── src/
+├── src/
+│   ├── app/                   # Next.js App Router
+│   │   ├── (dashboard)/       # Photographer dashboard routes
+│   │   ├── client/            # Client photo selection routes
+│   │   └── api/               # API route handlers (REST endpoints)
+│   │       ├── auth/          # Authentication endpoints
+│   │       ├── albums/         # Album management endpoints
+│   │       ├── photos/         # Photo upload endpoints
+│   │       ├── selections/     # Selection endpoints
+│   │       ├── sync/           # Lightroom sync endpoints
+│   │       └── notifications/  # Notification endpoints
+│   ├── lib/                   # Core business logic (shared)
 │   │   ├── auth/              # Authentication & Authorization
 │   │   ├── albums/            # Album Management
 │   │   ├── photos/            # Photo Upload & Processing
@@ -321,35 +331,26 @@ photoflow/
 │   │   ├── sync/              # Selection Synchronization
 │   │   ├── notifications/      # Progress Tracking & Notifications
 │   │   ├── storage/           # File Storage Management
-│   │   ├── db/                # Database models and migrations
-│   │   ├── middleware/        # Express middleware
-│   │   ├── utils/             # Shared utilities
-│   │   └── server.ts          # Express server setup
-│   ├── tests/
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── app/               # Next.js app router
-│   │   │   ├── (dashboard)/   # Photographer dashboard routes
-│   │   │   ├── client/        # Client photo selection routes
-│   │   │   └── api/           # API route handlers
-│   │   ├── components/        # React components
-│   │   │   ├── dashboard/     # Dashboard components
-│   │   │   ├── client/        # Client interface components
-│   │   │   └── shared/        # Shared UI components
-│   │   ├── lib/               # Client-side utilities
-│   │   └── hooks/             # React hooks
-│   ├── public/
-│   └── package.json
+│   │   ├── validation/        # Validation schemas
+│   │   ├── errors/            # Error handling
+│   │   └── logging/           # Logging utilities
+│   ├── components/            # React components
+│   │   ├── dashboard/         # Dashboard components
+│   │   ├── client/            # Client interface components
+│   │   └── shared/            # Shared UI components
+│   ├── hooks/                 # React hooks
+│   ├── actions/               # Server Actions (UI-driven mutations)
+│   └── middleware.ts          # Next.js middleware (auth, routing)
+├── prisma/                    # Database schema and migrations
+├── public/                    # Static assets
 ├── lightroom-plugin/
 │   ├── src/
 │   │   ├── upload.lua         # Photo upload logic
 │   │   ├── sync.lua           # Selection sync logic
 │   │   ├── api-client.lua     # HTTP client for API
-│   │   └── preferences.lua    # Plugin preferences
+│   │   └── preferences.lua   # Plugin preferences
 │   └── Info.lua               # Plugin metadata
-└── shared/
-    └── types/                  # Shared TypeScript types
+└── package.json
 ```
 
 ## Module Definitions
@@ -370,7 +371,10 @@ photoflow/
   - `authenticatePhotographer()` - Authenticate photographer and return JWT
   - `validateClientToken()` - Validate client access token
   - `refreshSession()` - Refresh photographer session
-  - `requireAuth()` - Express middleware for protected routes
+  - `requireAuth()` - Next.js route handler auth utility (for API routes)
+  - `requireSessionUser()` - Server Action auth utility (for Server Actions)
+  - `verifyAccessToken()` - Token verification for API routes
+  - `verifySessionCookie()` - Cookie-based session verification
 
 ### Module: albums
 - **Maps to capability**: Album Management
@@ -542,6 +546,8 @@ Depends on core business logic.
 Depends on all previous layers.
 
 - **api-routes**: Depends on [auth, albums, photos, selections, sync, notifications]
+  - Next.js route handlers (`app/api/**/route.ts`) for REST endpoints
+  - Server Actions (`actions/**`) for UI-driven mutations
 - **lightroom-plugin**: Depends on [api-routes] (external dependency)
 
 ### Frontend Layer (Phase 5)
@@ -660,8 +666,8 @@ Phase ordering follows topological sort of dependency graph.
 
 **Tasks**:
 - [ ] API routes implementation (depends on: [auth, albums, photos, selections, sync, notifications])
-  - Acceptance criteria: All endpoints implemented, OpenAPI documentation, error handling
-  - Test strategy: Integration tests for all endpoints, E2E tests for complete workflows
+  - Acceptance criteria: All route handlers implemented in `app/api/**/route.ts`, Server Actions for UI mutations, error handling, request validation
+  - Test strategy: Integration tests for all route handlers, Server Action tests, E2E tests for complete workflows
 
 - [ ] Lightroom plugin development (depends on: [api-routes])
   - Acceptance criteria: Photo upload from Lightroom, selection sync, collection creation
@@ -884,9 +890,9 @@ Keep this section AFTER functional/structural decomposition - implementation det
 ## System Components
 
 ### Backend Server
-- **Technology**: Node.js + Express + TypeScript
-- **Responsibility**: RESTful API, business logic, database access
-- **Deployment**: Railway/Render hosting
+- **Technology**: Next.js 14+ App Router (API Routes + Server Actions) + TypeScript
+- **Responsibility**: RESTful API via route handlers, business logic via Server Actions, database access
+- **Deployment**: Vercel hosting (unified with frontend)
 
 ### Frontend Application
 - **Technology**: Next.js + TypeScript + Tailwind CSS + shadcn/ui
@@ -987,14 +993,15 @@ enum AlbumStatus {
 
 ### Backend
 - **Runtime**: Node.js 18+
-- **Framework**: Express.js
+- **Framework**: Next.js 14+ App Router (API Routes + Server Actions)
 - **Language**: TypeScript
 - **ORM**: Prisma
 - **Database**: PostgreSQL
 - **Storage**: Cloudflare R2
 - **Image Processing**: Sharp
-- **Authentication**: JWT, bcrypt (Google OAuth planned for future version)
-- **Scheduled Jobs**: Background job processing for deadline auto-submission (e.g., node-cron, Bull, or similar)
+- **Authentication**: JWT, bcrypt, session cookies (Google OAuth planned for future version)
+- **Scheduled Jobs**: Background job processing for deadline auto-submission (e.g., node-cron, Bull, or Vercel Cron)
+- **File Uploads**: Web-standard FormData API with streaming support
 
 ### Frontend
 - **Framework**: Next.js 14+ (App Router)
@@ -1008,10 +1015,10 @@ enum AlbumStatus {
 - **SDK**: Lightroom Classic SDK
 - **HTTP Client**: LrHttp module (built-in SDK module for HTTP/HTTPS requests)
 
-**Decision: Next.js App Router**
-- **Rationale**: Modern React patterns, server components for performance, built-in API routes
-- **Trade-offs**: Learning curve, less mature than Pages Router
-- **Alternatives considered**: Pages Router (more stable), Remix (different paradigm)
+**Decision: Next.js App Router with API Routes and Server Actions**
+- **Rationale**: Modern React patterns, server components for performance, built-in API routes, unified full-stack framework, Server Actions for seamless form handling
+- **Trade-offs**: Learning curve for Server Actions, different patterns than traditional REST APIs
+- **Alternatives considered**: Express.js (separate backend), Pages Router (less modern), Remix (different paradigm)
 
 **Decision: Prisma ORM**
 - **Rationale**: Type-safe database access, migration management, excellent TypeScript support

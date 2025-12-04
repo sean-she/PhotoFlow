@@ -45,5 +45,8 @@ export {
   asyncHandler,
   handleApiError,
   withErrorHandling,
+  handleRouteError,
+  withRouteErrorHandling,
+  type RouteContext,
 } from "./middleware";
 

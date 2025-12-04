@@ -2,18 +2,26 @@
  * Express and Next.js middleware for logging
  * 
  * Provides middleware for request/response logging and error logging
- * integration with Express.js and Next.js API routes.
+ * integration with Express.js and Next.js App Router route handlers.
  */
 
 import type { Request, Response, NextFunction } from "express";
+import type { NextRequest, NextResponse } from "next/server";
 import type { Logger } from "pino";
 import { getLogger } from "./logger";
-import { createRequestLogger, extractRequestContext } from "./context";
+import {
+  createRequestLogger,
+  createRequestLoggerFromNextRequest,
+  extractRequestContext,
+} from "./context";
 import { logRequestResponse, createTimer } from "./performance";
 import { logError } from "./error-integration";
 
 /**
  * Express middleware for request/response logging
+ * 
+ * @deprecated For Express.js compatibility only. For Next.js App Router,
+ * use Next.js middleware.ts with logging utilities instead.
  * 
  * Logs incoming requests and responses with timing information.
  * Creates a request-scoped logger and attaches it to the request object.
@@ -60,6 +68,9 @@ export function requestLoggingMiddleware(logger?: Logger) {
 /**
  * Express error logging middleware
  * 
+ * @deprecated For Express.js compatibility only. For Next.js App Router,
+ * use `withRouteLogging` which includes error logging.
+ * 
  * Should be used after all routes and before error handling middleware.
  * Logs errors that occur during request processing.
  * 
@@ -93,11 +104,14 @@ export function errorLoggingMiddleware(logger?: Logger) {
 }
 
 /**
- * Next.js API route logging wrapper
+ * Next.js Pages Router API route logging wrapper
  * 
- * Wraps a Next.js API route handler with logging functionality.
+ * @deprecated For Next.js Pages Router compatibility only. For App Router,
+ * use `withRouteLogging` instead.
  * 
- * @param handler - Next.js API route handler
+ * Wraps a Next.js Pages Router API route handler with logging functionality.
+ * 
+ * @param handler - Next.js Pages Router API route handler
  * @param logger - Optional logger instance
  * @returns Wrapped handler with logging
  */
@@ -143,6 +157,9 @@ export function withLogging<T extends (...args: unknown[]) => Promise<unknown>>(
 /**
  * Async route handler wrapper with error logging
  * 
+ * @deprecated For Express.js compatibility only. For Next.js App Router,
+ * use `withRouteLogging` instead.
+ * 
  * Wraps an async Express route handler to automatically catch and log errors.
  * 
  * @param handler - Async route handler function
@@ -168,6 +185,122 @@ export function asyncHandler(
         path: req.path || req.url,
       });
       next(error);
+    }
+  };
+}
+
+/**
+ * Route context for Next.js App Router route handlers
+ */
+export interface RouteContext {
+  params?: Record<string, string | string[]>;
+  [key: string]: unknown;
+}
+
+/**
+ * Wrap a Next.js App Router route handler with logging functionality
+ * 
+ * Automatically logs requests, responses, and errors with timing information.
+ * Creates a request-scoped logger from the NextRequest object.
+ * 
+ * @param handler - Route handler function that returns NextResponse
+ * @param logger - Optional logger instance (uses default if not provided)
+ * @returns Wrapped handler with automatic logging
+ * 
+ * @example
+ * ```typescript
+ * import { withRouteLogging } from "@/lib/logging";
+ * import type { NextRequest, NextResponse } from "next/server";
+ * 
+ * export const GET = withRouteLogging(
+ *   async (request: NextRequest): Promise<NextResponse> => {
+ *     const data = await fetchData();
+ *     return NextResponse.json(data);
+ *   }
+ * );
+ * ```
+ * 
+ * @example With route context (dynamic routes)
+ * ```typescript
+ * import { withRouteLogging, type RouteContext } from "@/lib/logging";
+ * import type { NextRequest, NextResponse } from "next/server";
+ * 
+ * export const GET = withRouteLogging(
+ *   async (
+ *     request: NextRequest,
+ *     context: RouteContext
+ *   ): Promise<NextResponse> => {
+ *     const { id } = context.params as { id: string };
+ *     const data = await fetchDataById(id);
+ *     return NextResponse.json(data);
+ *   }
+ * );
+ * ```
+ */
+export function withRouteLogging(
+  handler: (
+    request: NextRequest,
+    context?: RouteContext
+  ) => Promise<NextResponse>,
+  logger?: Logger
+): (
+  request: NextRequest,
+  context?: RouteContext
+) => Promise<NextResponse> {
+  const baseLogger = logger || getLogger();
+
+  return async (
+    request: NextRequest,
+    context?: RouteContext
+  ): Promise<NextResponse> => {
+    // Create request-scoped logger from NextRequest
+    const requestLogger = createRequestLoggerFromNextRequest(baseLogger, request);
+    
+    // Create timer for performance tracking
+    const url = new URL(request.url);
+    const timer = createTimer(
+      requestLogger,
+      `${request.method} ${url.pathname}`
+    );
+
+    try {
+      // Log incoming request
+      requestLogger.info(
+        {
+          method: request.method,
+          url: request.url,
+          pathname: url.pathname,
+          searchParams: Object.fromEntries(url.searchParams),
+        },
+        `Incoming request: ${request.method} ${url.pathname}`
+      );
+
+      // Execute handler
+      const response = await handler(request, context);
+
+      // Log response
+      const statusCode = response.status;
+      timer.end({ statusCode });
+      
+      requestLogger.info(
+        {
+          method: request.method,
+          pathname: url.pathname,
+          statusCode,
+        },
+        `Request completed: ${request.method} ${url.pathname} ${statusCode}`
+      );
+
+      return response;
+    } catch (error) {
+      // Log error
+      timer.end({ success: false });
+      logError(requestLogger, error, {
+        method: request.method,
+        url: request.url,
+        pathname: url.pathname,
+      });
+      throw error;
     }
   };
 }

@@ -36,9 +36,11 @@ export {
 export {
   createContextLogger,
   createRequestLogger,
+  createRequestLoggerFromNextRequest,
   addContext,
   generateRequestId,
   extractRequestContext,
+  extractNextRequestContext,
   type RequestContext,
 } from "./context";
 
@@ -74,6 +76,8 @@ export {
   errorLoggingMiddleware,
   withLogging,
   asyncHandler,
+  withRouteLogging,
+  type RouteContext,
 } from "./middleware";
 
 // Re-export Pino types for convenience

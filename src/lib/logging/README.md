@@ -87,7 +87,81 @@ try {
 }
 ```
 
-### Express Middleware
+## Next.js App Router (Recommended)
+
+### Route Handler Logging
+
+Use `withRouteLogging` to automatically log requests and responses:
+
+```typescript
+// app/api/users/route.ts
+import { withRouteLogging } from "@/lib/logging";
+import type { NextRequest, NextResponse } from "next/server";
+
+export const GET = withRouteLogging(
+  async (request: NextRequest): Promise<NextResponse> => {
+    const users = await getUsers();
+    return NextResponse.json(users);
+  }
+);
+```
+
+### Combining Logging and Error Handling
+
+Combine `withRouteLogging` and `withRouteErrorHandling`:
+
+```typescript
+// app/api/users/route.ts
+import { withRouteLogging } from "@/lib/logging";
+import { withRouteErrorHandling } from "@/lib/errors";
+import type { NextRequest, NextResponse } from "next/server";
+
+const handler = async (request: NextRequest): Promise<NextResponse> => {
+  const users = await getUsers();
+  return NextResponse.json(users);
+};
+
+export const GET = withRouteErrorHandling(withRouteLogging(handler));
+```
+
+### NextRequest Context Extraction
+
+Extract context from NextRequest objects:
+
+```typescript
+import { extractNextRequestContext, createRequestLoggerFromNextRequest } from "@/lib/logging";
+import { getLogger } from "@/lib/logging";
+import type { NextRequest } from "next/server";
+
+export async function GET(request: NextRequest) {
+  const context = extractNextRequestContext(request);
+  const logger = createRequestLoggerFromNextRequest(getLogger(), request);
+  
+  logger.info({ userId: context.userId }, "Processing request");
+  // ...
+}
+```
+
+### Next.js Middleware
+
+Use logging in Next.js middleware (`src/middleware.ts`):
+
+```typescript
+import { getLogger, createRequestLoggerFromNextRequest } from "@/lib/logging";
+import { NextRequest, NextResponse } from "next/server";
+
+export function middleware(request: NextRequest) {
+  const logger = createRequestLoggerFromNextRequest(getLogger(), request);
+  logger.info({ pathname: new URL(request.url).pathname }, "Middleware processing");
+  
+  // Your middleware logic
+  return NextResponse.next();
+}
+```
+
+## Express Middleware (Legacy)
+
+> **Note**: These utilities are for Express.js compatibility only. For Next.js App Router, use the App Router utilities above.
 
 ```typescript
 import {
@@ -147,10 +221,12 @@ const logger = createLoggerWithTransports({
 
 ### Context Management
 
-- `createRequestLogger(logger, req)`: Create request-scoped logger
+- `createRequestLogger(logger, req)`: Create request-scoped logger (generic request)
+- `createRequestLoggerFromNextRequest(logger, request)`: Create request-scoped logger from NextRequest
 - `createContextLogger(logger, context)`: Create child logger with context
 - `generateRequestId(prefix?)`: Generate unique request ID
-- `extractRequestContext(req)`: Extract context from request object
+- `extractRequestContext(req)`: Extract context from generic request object
+- `extractNextRequestContext(request)`: Extract context from NextRequest (optimized)
 
 ### Performance
 
@@ -167,10 +243,11 @@ const logger = createLoggerWithTransports({
 
 ### Middleware
 
-- `requestLoggingMiddleware(logger?)`: Express request logging middleware
-- `errorLoggingMiddleware(logger?)`: Express error logging middleware
-- `withLogging(handler, logger?)`: Next.js API route wrapper
-- `asyncHandler(handler, logger?)`: Async Express handler wrapper
+- `requestLoggingMiddleware(logger?)`: Express request logging middleware (legacy)
+- `errorLoggingMiddleware(logger?)`: Express error logging middleware (legacy)
+- `withLogging(handler, logger?)`: Next.js Pages Router API route wrapper (legacy)
+- `asyncHandler(handler, logger?)`: Async Express handler wrapper (legacy)
+- `withRouteLogging(handler, logger?)`: Next.js App Router route handler wrapper (recommended)
 
 ## Integration with Error Handling
 

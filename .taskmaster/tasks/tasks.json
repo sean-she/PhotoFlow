@@ -273,7 +273,7 @@
               1,
               2
             ],
-            "details": "Implement POST /auth/login endpoint with email/password validation, user lookup, password verification, and token generation. Create POST /auth/refresh endpoint for token renewal using refresh tokens. Implement POST /auth/logout for invalidating tokens. Add rate limiting to prevent brute force attacks. Ensure proper error responses for invalid credentials.",
+            "details": "Implement Next.js route handlers in app/api/auth/login/route.ts, app/api/auth/refresh/route.ts, and app/api/auth/logout/route.ts. Use NextRequest/NextResponse for handling requests. Implement POST /api/auth/login with email/password validation, user lookup, password verification, and token generation. Create POST /api/auth/refresh for token renewal using refresh tokens. Implement POST /api/auth/logout for invalidating tokens. Support both token-based auth (Bearer tokens for Lightroom plugin) and session cookies (for web app). Add rate limiting using Next.js middleware or external service. Ensure proper error responses for invalid credentials using NextResponse.json.",
             "status": "pending",
             "testStrategy": "Integration tests for successful and failed login attempts, token refresh, and logout. Test rate limiting functionality and error handling.",
             "parentId": "undefined"
@@ -285,7 +285,7 @@
             "dependencies": [
               2
             ],
-            "details": "Develop Express middleware to validate JWT tokens on protected routes. Implement role-based access control (photographer vs admin). Create middleware for optional authentication on semi-public routes. Handle and format authentication errors consistently. Integrate with the shared error handling utilities from Task 3.",
+            "details": "Create Next.js authentication utilities in lib/auth/middleware.ts. Implement requireAuth() function for route handlers that validates JWT tokens from Bearer headers or query parameters. Implement requireSessionUser() function for Server Actions that validates session cookies. Create Next.js middleware.ts file for global route protection and authentication checks. Implement role-based access control (photographer vs admin). Create utilities for optional authentication on semi-public routes. Handle and format authentication errors consistently using NextResponse.json. Integrate with the shared error handling utilities from Task 3.",
             "status": "pending",
             "testStrategy": "Unit tests for middleware functions. Integration tests with protected routes to verify proper authentication and authorization enforcement.",
             "parentId": "undefined"
@@ -297,7 +297,7 @@
             "dependencies": [
               4
             ],
-            "details": "Implement cryptographically secure random token generation for client access using node:crypto. Create database storage and lookup mechanisms for tokens. Ensure tokens are sufficiently random (minimum 32 bytes, hex-encoded). Add token validation middleware for client routes. Implement token regeneration functionality for photographers to reset client access.",
+            "details": "Implement cryptographically secure random token generation for client access using node:crypto. Create database storage and lookup mechanisms for tokens. Ensure tokens are sufficiently random (minimum 32 bytes, hex-encoded). Add token validation utility function (validateClientToken()) for client route handlers. Implement token regeneration functionality for photographers to reset client access. Use Next.js route handlers for client access endpoints (app/api/client/[token]/route.ts).",
             "status": "pending",
             "testStrategy": "Unit tests for token generation security and uniqueness. Integration tests for token validation and regeneration flows.",
             "parentId": "undefined"
@@ -319,7 +319,7 @@
         ],
         "complexity": 8,
         "recommendedSubtasks": 6,
-        "expansionPrompt": "Break down the authentication module into password hashing, JWT management, login/refresh endpoints, middleware, client token generation, and session management. For each subtask, detail the security requirements, token handling, and test cases for authentication flows."
+        "expansionPrompt": "Break down the authentication module into password hashing, JWT management, login/refresh route handlers (Next.js), authentication utilities (requireAuth, requireSessionUser), client token generation, and session management. For each subtask, detail the security requirements, token handling, Next.js route handler patterns, and test cases for authentication flows."
       },
       {
         "id": 5,
@@ -340,7 +340,7 @@
             "title": "Implement Multipart Upload Handling with Multer v2",
             "description": "Set up the server-side infrastructure to handle multipart file uploads from the Lightroom plugin using Multer v2.",
             "dependencies": [],
-            "details": "Configure Express middleware with Multer v2 for handling multipart uploads. Implement file size limits (max 100MB per file), file type validation (accept only JPG, PNG, TIFF, RAW formats), temporary storage configuration, and error handling for failed uploads. Create an upload controller with endpoints for single and batch uploads. Implement authentication middleware to ensure only authorized Lightroom plugins can upload.",
+            "details": "Create Next.js route handler in app/api/photos/upload/route.ts for handling multipart file uploads using web-standard FormData API. Use req.formData() to parse multipart data. Implement file size limits (max 100MB per file) using Next.js configuration or validation. Implement file type validation (accept only JPG, PNG, TIFF, RAW formats) using zod schemas. Use streaming for large file uploads. Create route handlers for single and batch uploads. Implement authentication using requireAuth() utility to ensure only authorized Lightroom plugins can upload. Handle errors using NextResponse.json with proper status codes.",
             "status": "pending",
             "testStrategy": "Unit tests for file validation logic, integration tests with mock file uploads of various sizes and types, error handling tests for invalid files and authentication failures.",
             "parentId": "undefined"
@@ -372,7 +372,7 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Expand the pipeline into multipart upload handling, image processing, and storage/database integration. For each subtask, specify the libraries to use (e.g., Multer, Sharp), the processing steps, and the test cases for file validation and error recovery."
+        "expansionPrompt": "Expand the pipeline into multipart upload handling (Next.js FormData API), image processing, and storage/database integration. For each subtask, specify the libraries to use (e.g., Sharp for image processing), Next.js route handler patterns for file uploads, the processing steps, and the test cases for file validation and error recovery."
       },
       {
         "id": 6,
@@ -393,7 +393,7 @@
             "title": "Implement Album CRUD Endpoints",
             "description": "Create RESTful API endpoints for album creation, retrieval, update, and deletion operations with proper validation and error handling.",
             "dependencies": [],
-            "details": "Develop Express.js routes for /api/albums with POST (create), GET (list/retrieve), PUT/PATCH (update), and DELETE methods. Implement data validation using zod schemas. Include fields for album name, description, photographer notes, deadline, and settings. Ensure proper authentication and authorization checks. Connect to database layer for persistence.",
+            "details": "Create Next.js route handlers in app/api/albums/route.ts (for list/create) and app/api/albums/[albumId]/route.ts (for get/update/delete). Implement GET, POST, PATCH, and DELETE HTTP methods using NextRequest/NextResponse. Validate request bodies using zod schemas at route handler boundaries. Include fields for album name, description, photographer notes, deadline, and settings. Call core business logic from lib/albums module. Ensure proper authentication using requireAuth() utility and authorization checks. Connect to database layer via Prisma client in core modules.",
             "status": "pending",
             "testStrategy": "Unit tests for validation logic, integration tests for database operations, API tests for endpoint functionality including error cases and edge scenarios.",
             "parentId": "undefined"
@@ -453,7 +453,7 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down the album management module into CRUD endpoints, client invitation system, status management, resubmission control, and business rules validation. For each subtask, detail the API endpoints, business logic, and test cases for edge scenarios."
+        "expansionPrompt": "Break down the album management module into CRUD route handlers (Next.js), client invitation system, status management, resubmission control, and business rules validation. For each subtask, detail the Next.js route handlers (app/api/albums/**/route.ts), business logic in core modules (lib/albums), and test cases for edge scenarios."
       },
       {
         "id": 7,
@@ -523,7 +523,7 @@
               3,
               4
             ],
-            "details": "Create middleware to detect album status and enforce read-only constraints, modify frontend components to disable selection controls for closed albums, implement visual indicators of submission status, provide access to submission history and selected photos, and ensure proper error messages when modification is attempted on closed albums.",
+            "details": "Create utility functions in lib/selections/readonly.ts to detect album status and enforce read-only constraints. Modify route handlers to check album status before allowing modifications. Update frontend components to disable selection controls for closed albums. Implement visual indicators of submission status. Provide access to submission history and selected photos via read-only route handlers. Ensure proper error messages using NextResponse.json when modification is attempted on closed albums. Use Server Actions for UI-driven read-only checks where appropriate.",
             "status": "pending",
             "testStrategy": "Integration tests for read-only enforcement across endpoints, UI tests for disabled controls, authorization tests to verify modification prevention, and validation of proper error responses.",
             "parentId": "undefined"
@@ -531,7 +531,7 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Expand the selection module into gallery display, selection/deselection logic, submission flow, deadline enforcement, and read-only mode. For each subtask, specify the API endpoints, business logic, and test cases for edge scenarios."
+        "expansionPrompt": "Expand the selection module into gallery display route handlers, selection/deselection logic, submission flow, deadline enforcement, and read-only mode. For each subtask, specify the Next.js route handlers (app/api/selections/**/route.ts), business logic in core modules (lib/selections), and test cases for edge scenarios."
       },
       {
         "id": 8,
@@ -555,7 +555,7 @@
             "dependencies": [
               3
             ],
-            "details": "Create RESTful endpoints using Express.js for retrieving selections by album ID, photo ID, and client ID. Implement JWT authentication middleware to ensure only authorized users can access selections. Include pagination support for large datasets and caching mechanisms for improved performance. Define TypeScript interfaces for selection data structures and use shared utilities for error handling.",
+            "details": "Create Next.js route handlers in app/api/sync/selections/route.ts and app/api/sync/selections/[id]/route.ts for retrieving selections by album ID, photo ID, and client ID. Use NextRequest/NextResponse with GET methods. Implement JWT authentication using requireAuth() utility to ensure only authorized users can access selections. Include pagination support using query parameters (limit, offset, cursor) for large datasets. Implement caching using Next.js revalidation or external cache. Define TypeScript interfaces for selection data structures. Use shared utilities for error handling with NextResponse.json.",
             "status": "pending",
             "testStrategy": "Unit tests for authentication logic, integration tests for API endpoints with mock data, performance tests for large dataset retrieval, and security tests for authorization edge cases.",
             "parentId": "undefined"
@@ -587,7 +587,7 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Expand the synchronization module into selection retrieval API, aggregation service, and plugin data formatting. For each subtask, detail the API endpoints, aggregation logic, and test cases for edge scenarios."
+        "expansionPrompt": "Expand the synchronization module into selection retrieval route handlers (Next.js), aggregation service, and plugin data formatting. For each subtask, detail the Next.js route handlers (app/api/sync/**/route.ts), aggregation logic in core modules (lib/sync), and test cases for edge scenarios."
       },
       {
         "id": 9,
@@ -768,7 +768,7 @@
         "id": 12,
         "title": "Develop REST API Routes with OpenAPI Documentation",
         "description": "Expose all backend functionality via RESTful API endpoints and generate OpenAPI docs.",
-        "details": "Use Express.js v4+ and TypeScript. Implement routes for authentication, albums, photos, selections, sync, notifications. Use express-openapi-validator v5 for schema validation and auto-generate docs.",
+        "details": "Use Next.js 14+ App Router with TypeScript. Implement route handlers (app/api/**/route.ts) for authentication, albums, photos, selections, sync, notifications. Use Server Actions (actions/**) for UI-driven mutations. Validate requests using zod schemas at route handler boundaries. Keep route handlers thin - delegate to core business logic modules in lib/. Use NextRequest/NextResponse for all route handlers. Generate OpenAPI documentation separately if needed (e.g., using next-swagger-doc or manual documentation).",
         "testStrategy": "Integration tests for all endpoints, E2E tests for complete workflows, OpenAPI schema validation.",
         "priority": "medium",
         "dependencies": [
@@ -786,7 +786,7 @@
             "title": "Design RESTful API Route Structure and Authentication",
             "description": "Define the complete API route structure for all modules and implement authentication endpoints with JWT token handling.",
             "dependencies": [],
-            "details": "Create a comprehensive route structure for all modules (authentication, albums, photos, selections, sync, notifications). Implement authentication endpoints including login, registration, password reset, and token refresh. Use JWT for authentication with proper token expiration and refresh mechanisms. Define middleware for route protection and role-based access control. Document all authentication endpoints with OpenAPI annotations.",
+            "details": "Create Next.js route handler structure in app/api/ for all modules (auth, albums, photos, selections, sync, notifications). Implement route handlers for authentication: app/api/auth/login/route.ts, app/api/auth/refresh/route.ts, app/api/auth/logout/route.ts. Use JWT for authentication with proper token expiration and refresh mechanisms. Support both token-based auth (Bearer tokens for Lightroom plugin) and session cookies (for web app). Create Next.js middleware.ts for global route protection. Implement requireAuth() utility for route handler authentication. Implement role-based access control (photographer vs admin). Document route handlers with JSDoc comments (OpenAPI can be generated separately if needed).",
             "status": "pending",
             "testStrategy": "Unit tests for authentication logic, integration tests for token validation, security testing for authentication bypass attempts, and OpenAPI schema validation.",
             "parentId": "undefined"
@@ -798,7 +798,7 @@
             "dependencies": [
               1
             ],
-            "details": "Implement RESTful CRUD endpoints for albums (GET, POST, PUT, DELETE), photos (GET, POST, PUT, DELETE), and selections (GET, POST, PUT). Include filtering, pagination, and sorting capabilities for collection endpoints. Implement proper error handling with appropriate HTTP status codes. Ensure proper validation of request bodies using express-openapi-validator. Document all endpoints with detailed OpenAPI annotations including request/response schemas, examples, and possible error responses.",
+            "details": "Create Next.js route handlers for CRUD operations: app/api/albums/route.ts and app/api/albums/[albumId]/route.ts (albums), app/api/photos/route.ts and app/api/photos/[photoId]/route.ts (photos), app/api/selections/route.ts (selections). Implement GET, POST, PATCH, DELETE methods using NextRequest/NextResponse. Include filtering, pagination, and sorting using query parameters. Call core business logic modules (lib/albums, lib/photos, lib/selections) from route handlers. Validate request bodies using zod schemas at route handler boundaries. Implement proper error handling with NextResponse.json and appropriate HTTP status codes. Document route handlers with JSDoc comments including request/response types and examples.",
             "status": "pending",
             "testStrategy": "Integration tests for all CRUD operations, edge case testing for validation errors, performance testing for collection endpoints with large datasets, and verification of OpenAPI documentation accuracy.",
             "parentId": "undefined"
@@ -810,7 +810,7 @@
             "dependencies": [
               2
             ],
-            "details": "Develop synchronization endpoints for the Lightroom plugin including selection retrieval and aggregation. Implement notification endpoints for client and photographer alerts. Set up automated OpenAPI documentation generation with Swagger UI for interactive testing. Configure express-openapi-validator for runtime request/response validation. Create comprehensive examples and descriptions for all endpoints. Implement proper CORS handling and rate limiting for public-facing endpoints. Ensure documentation is complete with all models, parameters, and response types.",
+            "details": "Create Next.js route handlers for synchronization: app/api/sync/selections/route.ts and app/api/sync/albums/[albumId]/selections/route.ts for Lightroom plugin selection retrieval and aggregation. Implement notification route handlers in app/api/notifications/route.ts for client and photographer alerts. Use Server Actions for UI-driven notification triggers (e.g., 'send reminder now' button). Keep route handlers thin - delegate to core modules (lib/sync, lib/notifications). Validate requests using zod schemas. Configure CORS in next.config.ts or Next.js middleware. Implement rate limiting using Next.js middleware or external service. Document route handlers with JSDoc comments. OpenAPI documentation can be generated separately using tools like next-swagger-doc if needed.",
             "status": "pending",
             "testStrategy": "End-to-end testing of synchronization flows, integration tests for notification delivery, validation of generated OpenAPI documentation against actual implementation, and load testing for rate-limited endpoints.",
             "parentId": "undefined"
@@ -818,7 +818,7 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Expand the API development into route structure, endpoint implementation, and OpenAPI documentation. For each subtask, detail the route structure, endpoint logic, and test cases for edge scenarios."
+        "expansionPrompt": "Expand the API development into Next.js route handler structure (app/api/**/route.ts), Server Actions for UI mutations (actions/**), and documentation. For each subtask, detail the Next.js route handler patterns, core module integration (lib/**), validation with zod, and test cases for edge scenarios."
       },
       {
         "id": 13,

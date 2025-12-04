@@ -171,7 +171,68 @@ if (shouldLogError(error)) {
 }
 ```
 
-## Express Middleware
+## Next.js App Router (Recommended)
+
+### Route Handler with Error Handling
+
+Use `withRouteErrorHandling` to automatically handle errors in route handlers:
+
+```typescript
+// app/api/users/route.ts
+import { withRouteErrorHandling } from "@/lib/errors";
+import type { NextRequest, NextResponse } from "next/server";
+
+export const GET = withRouteErrorHandling(
+  async (request: NextRequest): Promise<NextResponse> => {
+    const users = await getUsers();
+    return NextResponse.json(users);
+  }
+);
+```
+
+### Manual Error Handling
+
+For more control, use `handleRouteError` directly:
+
+```typescript
+// app/api/users/route.ts
+import { handleRouteError } from "@/lib/errors";
+import type { NextRequest, NextResponse } from "next/server";
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  try {
+    const users = await getUsers();
+    return NextResponse.json(users);
+  } catch (error) {
+    return handleRouteError(error, request);
+  }
+}
+```
+
+### Dynamic Routes with Context
+
+For dynamic routes, access route parameters:
+
+```typescript
+// app/api/users/[id]/route.ts
+import { withRouteErrorHandling, type RouteContext } from "@/lib/errors";
+import type { NextRequest, NextResponse } from "next/server";
+
+export const GET = withRouteErrorHandling(
+  async (
+    request: NextRequest,
+    context: RouteContext
+  ): Promise<NextResponse> => {
+    const { id } = context.params as { id: string };
+    const user = await getUserById(id);
+    return NextResponse.json(user);
+  }
+);
+```
+
+## Express Middleware (Legacy)
+
+> **Note**: These utilities are for Express.js compatibility only. For Next.js App Router, use the App Router utilities above.
 
 ### Error Handler
 
@@ -202,11 +263,13 @@ router.get(
 );
 ```
 
-## Next.js API Routes
+## Next.js Pages Router (Legacy)
+
+> **Note**: These utilities are for Next.js Pages Router compatibility only. For App Router, use the App Router utilities above.
 
 ### Error Handler
 
-Use in Next.js API routes:
+Use in Next.js Pages Router API routes:
 
 ```typescript
 import type { NextApiRequest, NextApiResponse } from "next";

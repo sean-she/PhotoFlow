@@ -3,9 +3,12 @@
  * 
  * Provides utilities for managing request-scoped logging context
  * and generating unique request IDs for traceability.
+ * 
+ * Supports both Express request objects and Next.js NextRequest objects.
  */
 
 import type { Logger } from "pino";
+import type { NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
 
 /**
@@ -141,6 +144,89 @@ export function createRequestLogger(
   }
 ): Logger {
   const context = extractRequestContext(req);
+  return createContextLogger(logger, context);
+}
+
+/**
+ * Extract request context from Next.js NextRequest object
+ * 
+ * Optimized for Next.js App Router route handlers.
+ * 
+ * @param request - Next.js NextRequest object
+ * @returns Request context object
+ * 
+ * @example
+ * ```typescript
+ * import { extractNextRequestContext } from "@/lib/logging";
+ * import type { NextRequest } from "next/server";
+ * 
+ * export async function GET(request: NextRequest) {
+ *   const context = extractNextRequestContext(request);
+ *   // Use context for logging
+ * }
+ * ```
+ */
+export function extractNextRequestContext(request: NextRequest): RequestContext {
+  const context: RequestContext = {
+    requestId: generateRequestId(),
+  };
+
+  // Extract IP address from NextRequest
+  // NextRequest doesn't have ip property directly, extract from headers
+  const ip = 
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    undefined;
+  
+  if (ip) {
+    context.ip = ip;
+  }
+
+  // Extract user agent
+  const userAgent = request.headers.get("user-agent");
+  if (userAgent) {
+    context.userAgent = userAgent;
+  }
+
+  // Extract user ID from cookies or headers if available
+  // This assumes you store user ID in a cookie named 'userId' or similar
+  const userId = request.cookies.get("userId")?.value ||
+    request.headers.get("x-user-id") ||
+    undefined;
+  
+  if (userId) {
+    context.userId = userId;
+  }
+
+  return context;
+}
+
+/**
+ * Create a request-scoped logger from Next.js NextRequest
+ * 
+ * Optimized for Next.js App Router route handlers.
+ * 
+ * @param logger - Base logger instance
+ * @param request - Next.js NextRequest object
+ * @returns Child logger with request context
+ * 
+ * @example
+ * ```typescript
+ * import { createRequestLoggerFromNextRequest } from "@/lib/logging";
+ * import { getLogger } from "@/lib/logging";
+ * import type { NextRequest } from "next/server";
+ * 
+ * export async function GET(request: NextRequest) {
+ *   const logger = createRequestLoggerFromNextRequest(getLogger(), request);
+ *   logger.info("Processing request");
+ * }
+ * ```
+ */
+export function createRequestLoggerFromNextRequest(
+  logger: Logger,
+  request: NextRequest
+): Logger {
+  const context = extractNextRequestContext(request);
   return createContextLogger(logger, context);
 }
 
