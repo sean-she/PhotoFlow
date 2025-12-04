@@ -546,6 +546,69 @@ The script will output:
 
 ---
 
+## Logging Module Test
+
+Test script for Pino-based structured logging system including logger setup, context management, performance timing, error integration, and middleware functionality.
+
+### Running the Test
+
+```bash
+npm run test:logging
+```
+
+Or directly with tsx:
+
+```bash
+tsx scripts/test-logging.ts
+```
+
+### What It Tests
+
+**Core Logger:**
+1. **Basic Logger Creation** - Tests logger creation with default and custom configurations
+2. **Log Levels** - Tests all log levels (trace, debug, info, warn, error, fatal) and context logging
+3. **Logger Reset Functionality** - Tests logger reset and setLogger/getLogger functionality
+
+**Context Management:**
+4. **Request ID Generation** - Tests unique request ID generation with custom prefixes
+5. **Context-Aware Logging** - Tests creating child loggers with context and context merging
+6. **Request Context Extraction** - Tests extracting context from request objects (IP, user agent, user ID)
+
+**Performance Timing:**
+7. **Performance Timing (Async)** - Tests timing async operations with success and error handling
+8. **Performance Timing (Sync)** - Tests timing synchronous operations
+9. **Performance Timer Class** - Tests PerformanceTimer class for manual timing
+
+**Error Integration:**
+10. **Error Logging (BaseError)** - Tests logging BaseError and ValidationError instances
+11. **Error Logging (Standard Error)** - Tests logging standard Error objects and other error types
+12. **Error Logging at Specific Level** - Tests logging errors at different log levels
+13. **Error Logger Helper** - Tests createErrorLogger helper function
+
+**Request Logging:**
+14. **Request Logger Creation** - Tests creating request-scoped loggers with context
+
+**Configuration:**
+15. **Environment-Based Configuration** - Tests logger configuration for different environments (development, production, test)
+
+### Expected Output
+
+The script will output:
+- ✅ for passed tests
+- ❌ for failed tests
+- A summary at the end showing total passed/failed
+
+### Test Details
+
+- **No external dependencies required** - Pure unit tests for logging functionality
+- Tests all core logging features including logger setup, context management, and performance timing
+- Tests error integration with the error handling framework
+- Tests environment-based configuration
+- Validates request-scoped logging and context propagation
+- Tests performance timing utilities for async and sync operations
+
+---
+
 ## Troubleshooting
 
 ### Common Issues

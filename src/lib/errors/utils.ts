@@ -9,6 +9,21 @@ import { BaseError, HttpStatusCode } from "./base";
 import { ValidationError } from "./validation";
 
 /**
+ * Internal concrete error class for utilities
+ * Since BaseError is abstract, we need a concrete class for error conversion
+ */
+class InternalError extends BaseError {
+  constructor(
+    message: string,
+    statusCode: HttpStatusCode = HttpStatusCode.INTERNAL_SERVER_ERROR,
+    isOperational = true,
+    context?: Record<string, unknown>
+  ) {
+    super(message, statusCode, isOperational, context);
+  }
+}
+
+/**
  * Check if an error is an instance of BaseError
  */
 export function isBaseError(error: unknown): error is BaseError {
@@ -38,7 +53,7 @@ export function toBaseError(error: unknown): BaseError {
     // Check for common error patterns
     if (error.name === "ZodError") {
       // This should be handled by validation utilities, but just in case
-      return new BaseError(
+      return new InternalError(
         "Validation failed",
         HttpStatusCode.UNPROCESSABLE_ENTITY,
         true,
@@ -47,7 +62,7 @@ export function toBaseError(error: unknown): BaseError {
     }
 
     // For other Error instances, wrap them
-    return new BaseError(
+    return new InternalError(
       error.message || "An unexpected error occurred",
       HttpStatusCode.INTERNAL_SERVER_ERROR,
       false, // Not operational - these are unexpected
@@ -56,7 +71,7 @@ export function toBaseError(error: unknown): BaseError {
   }
 
   // For unknown error types, create a generic error
-  return new BaseError(
+  return new InternalError(
     "An unexpected error occurred",
     HttpStatusCode.INTERNAL_SERVER_ERROR,
     false,

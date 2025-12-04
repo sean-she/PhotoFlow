@@ -1,9 +1,10 @@
 /**
- * Error handling middleware for Next.js
+ * Error handling middleware for Express and Next.js
  * 
- * Provides middleware to catch and format errors uniformly for Next.js API routes
+ * Provides middleware to catch and format errors uniformly
  */
 
+import type { Request, Response, NextFunction } from "express";
 import { BaseError } from "./base";
 import {
   serializeErrorForClient,
@@ -17,6 +18,76 @@ import {
  */
 const isDevelopment = process.env.NODE_ENV === "development";
 const isProduction = process.env.NODE_ENV === "production";
+
+/**
+ * Express error handling middleware
+ * 
+ * Catches all errors and formats them appropriately based on environment.
+ * Should be added as the last middleware in your Express app.
+ * 
+ * @example
+ * ```typescript
+ * import express from "express";
+ * import { errorHandler } from "@/lib/errors";
+ * 
+ * const app = express();
+ * // ... your routes ...
+ * app.use(errorHandler);
+ * ```
+ */
+export function errorHandler(
+  error: unknown,
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  // Convert to BaseError if needed
+  const baseError = toBaseError(error);
+
+  // Log error if needed
+  if (shouldLogError(baseError) || isDevelopment) {
+    const errorLog = serializeErrorForLogging(baseError);
+    console.error("Error occurred:", {
+      ...errorLog,
+      method: req.method,
+      path: req.path,
+      ip: req.ip,
+    });
+  }
+
+  // Determine if we should include details
+  const includeDetails = isDevelopment && !isProduction;
+
+  // Serialize error for client
+  const clientError = serializeErrorForClient(baseError, includeDetails);
+
+  // Send response
+  res.status(baseError.statusCode).json(clientError);
+}
+
+/**
+ * Async error wrapper for Express route handlers
+ * 
+ * Wraps async route handlers to automatically catch and forward errors
+ * to the error handling middleware.
+ * 
+ * @example
+ * ```typescript
+ * import { asyncHandler } from "@/lib/errors";
+ * 
+ * router.get("/users", asyncHandler(async (req, res) => {
+ *   const users = await getUsers();
+ *   res.json(users);
+ * }));
+ * ```
+ */
+export function asyncHandler(
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>
+) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
 
 /**
  * Next.js API route error handler
