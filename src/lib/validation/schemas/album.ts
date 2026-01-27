@@ -53,7 +53,7 @@ export type AlbumIdInput = z.infer<typeof albumIdSchema>;
  */
 export const albumQuerySchema = z.object({
   status: albumStatusSchema.optional(),
-  userId: cuidSchema.optional(),
+  photographerId: cuidSchema.optional(),
   search: z.string().max(255).optional(),
 });
 
