@@ -14,6 +14,7 @@ datasource db {
 }
 
 /// Album status enum for tracking album lifecycle
+
 enum AlbumStatus {
   DRAFT // Album is being created/edited
   OPEN // Album is active and clients can access it
@@ -21,41 +22,117 @@ enum AlbumStatus {
   ARCHIVED // Album is archived and no longer active
 }
 
-/// User model for photographer accounts
-/// Handles authentication and user profile information
+/// User model (Better-Auth Managed)
+/// Handles authentication only - email, password, basic profile
+/// Business data (photographer info, API tokens) is stored in the Photographer model
+
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash") // Hashed password using bcrypt or similar
-  name         String?
-  refreshToken String?  @map("refresh_token") // Optional refresh token for JWT authentication
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id            String   @id
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  name          String?
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Better-auth relationships
+  sessions Session[]
+  accounts Account[]
+  
+  // Link to Photographer (one-to-one)
+  photographer Photographer?
 
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+/// Photographer model for business data
+/// Separates authentication (User) from business data (Photographer)
+/// API tokens and photographer-specific info stored here
+
+model Photographer {
+  id                String    @id @default(cuid())
+  userId            String    @unique @map("user_id") // One-to-one with better-auth User
+  name              String?   // Display name (can also use User.name)
+  apiToken          String?   @map("api_token") // Hashed API token for Lightroom plugin
+  apiTokenCreatedAt DateTime? @map("api_token_created_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
   // Relationships
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   albums Album[]
-
-  @@index([email])
-  @@map("users")
+  
+  @@index([userId])
+  @@index([apiToken])
+  @@map("photographers")
 }
 
 /// Album model for photo collections
 /// Represents a collection of photos that can be shared with clients
+
 model Album {
-  id          String      @id @default(cuid())
-  title       String
-  description String?
-  status      AlbumStatus @default(DRAFT)
-  userId      String      @map("user_id") // Foreign key to photographer
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  id            String      @id @default(cuid())
+  title         String
+  description   String?
+  status        AlbumStatus @default(DRAFT)
+  photographerId String     @map("photographer_id") // Changed from userId - references Photographer
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
   // Relationships
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photographer Photographer @relation(fields: [photographerId], references: [id], onDelete: Cascade)
   photos       Photo[]
   albumClients AlbumClient[]
 
-  @@index([userId])
+  @@index([photographerId])
   @@index([status])
   @@index([createdAt])
   @@map("albums")
@@ -63,6 +140,7 @@ model Album {
 
 /// Photo model for individual images
 /// Contains file metadata, storage references, and EXIF data
+
 model Photo {
   id                  String   @id @default(cuid())
   filename            String // Processed/stored filename
@@ -98,6 +176,7 @@ model Photo {
 
 /// AlbumClient model for client access to albums
 /// Manages client authentication tokens and access permissions
+
 model AlbumClient {
   id          String    @id @default(cuid())
   clientName  String    @map("client_name")
@@ -120,6 +199,7 @@ model AlbumClient {
 
 /// PhotoSelection model for tracking client photo selections
 /// Ensures unique selections per client per photo
+
 model PhotoSelection {
   id            String   @id @default(cuid())
   photoId       String   @map("photo_id") // Foreign key to Photo

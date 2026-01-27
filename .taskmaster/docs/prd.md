@@ -118,10 +118,10 @@ Step 3: For each feature, define:
 Manages user authentication for photographers and secure access control for clients.
 
 #### Feature: Photographer Authentication
-- **Description**: Authenticate photographers via email/password (Google OAuth to be added in future version)
+- **Description**: Authenticate photographers via email/password using better-auth library (Google OAuth to be added in future version)
 - **Inputs**: Email and password credentials
-- **Outputs**: JWT access token, user profile data
-- **Behavior**: Validate credentials, hash password with bcrypt, generate secure JWT, return session token
+- **Outputs**: Session cookie, user profile data
+- **Behavior**: Use better-auth for credential validation, password hashing, session management, and secure cookie handling. better-auth handles password hashing, session creation, CSRF protection, and secure cookie flags automatically.
 
 #### Feature: Client Access Control
 - **Description**: Generate and validate unique access tokens for client album access
@@ -130,19 +130,19 @@ Manages user authentication for photographers and secure access control for clie
 - **Behavior**: Generate cryptographically secure token, hash album password, enforce expiration
 
 #### Feature: Session Management
-- **Description**: Manage photographer sessions and token refresh
-- **Inputs**: JWT token, refresh token
-- **Outputs**: Validated session, refreshed tokens
-- **Behavior**: Verify token signature, check expiration, issue refresh tokens
+- **Description**: Manage photographer sessions using better-auth's built-in session management
+- **Inputs**: Session cookie, request context
+- **Outputs**: Validated session, user data
+- **Behavior**: better-auth handles session validation, expiration checking, and secure cookie management automatically. Sessions are stored in the database via Prisma adapter and validated on each request.
 
 ### Capability: Album Management
 Handles creation, configuration, and lifecycle management of photo albums.
 
 #### Feature: Album Creation
 - **Description**: Create new photo albums with metadata and settings
-- **Inputs**: Title, deadline, password, photographer ID
+- **Inputs**: Title, deadline, password, photographer ID (from Photographer model, not User)
 - **Outputs**: Album record with unique ID, creation timestamp
-- **Behavior**: Validate inputs, generate album ID, hash password, set initial status
+- **Behavior**: Validate inputs, generate album ID, hash password, set initial status. Album references Photographer model (which links to better-auth User for authentication).
 
 #### Feature: Client Invitation
 - **Description**: Add clients to albums and generate unique access links
@@ -357,24 +357,26 @@ photoflow/
 
 ### Module: auth
 - **Maps to capability**: Authentication & Authorization
-- **Responsibility**: Handle photographer authentication and client access control
+- **Responsibility**: Handle photographer authentication using better-auth and client access control
 - **File structure**:
   ```
   auth/
-  ├── photographer-auth.ts      # Photographer authentication
-  ├── client-access.ts          # Client access control
-  ├── session.ts                # Session management
-  ├── middleware.ts             # Auth middleware
+  ├── config.ts                # better-auth configuration with Prisma adapter
+  ├── client.ts                 # better-auth client SDK for React components
+  ├── api-token.ts              # API token generation/validation for Lightroom plugin
+  ├── client-access.ts          # Client access control (custom token generation)
+  ├── guards.ts                 # Route protection utilities (requireAuth, requirePhotographer)
   └── index.ts                  # Public exports
   ```
 - **Exports**:
-  - `authenticatePhotographer()` - Authenticate photographer and return JWT
-  - `validateClientToken()` - Validate client access token
-  - `refreshSession()` - Refresh photographer session
-  - `requireAuth()` - Next.js route handler auth utility (for API routes)
-  - `requireSessionUser()` - Server Action auth utility (for Server Actions)
-  - `verifyAccessToken()` - Token verification for API routes
-  - `verifySessionCookie()` - Cookie-based session verification
+  - `auth` - better-auth server instance (for API routes and server components)
+  - `authClient` - better-auth client SDK (for React components)
+  - `validateClientToken()` - Validate client access token (custom implementation)
+  - `validateApiToken()` - Validate API token for Lightroom plugin (stored in Photographer model)
+  - `requireAuth()` - Next.js route handler auth utility (uses better-auth session)
+  - `requirePhotographer()` - Server Action auth utility (uses better-auth session, links to Photographer)
+  - `getSession()` - Get current session from better-auth (server-side)
+- **Note**: Better-auth manages its own `user` table. Business data (API tokens, etc.) is stored in `Photographer` model.
 
 ### Module: albums
 - **Maps to capability**: Album Management
@@ -582,7 +584,7 @@ Phase ordering follows topological sort of dependency graph.
 
 **Tasks**:
 - [ ] Database schema design and Prisma setup (depends on: none)
-  - Acceptance criteria: Prisma schema defines all entities (User, Album, Photo, AlbumClient, PhotoSelection), migrations run successfully
+  - Acceptance criteria: Prisma schema defines all entities (User from better-auth, Photographer, Album, Photo, AlbumClient, PhotoSelection), migrations run successfully
   - Test strategy: Schema validation tests, migration rollback tests
 
 - [ ] Storage service integration (depends on: none)
@@ -606,16 +608,16 @@ Phase ordering follows topological sort of dependency graph.
 
 **Tasks**:
 - [ ] Authentication module (depends on: [db, utils])
-  - Acceptance criteria: Photographer login/logout working, JWT generation/validation, client token generation
-  - Test strategy: Unit tests for auth functions, integration tests for login flow
+  - Acceptance criteria: Better-auth configured, photographer login/logout working via better-auth sessions, Photographer table created and linked to User, client token generation
+  - Test strategy: Unit tests for auth functions, integration tests for login flow, tests for User-Photographer linking
 
 - [ ] Photo processing module (depends on: [db, storage, utils])
   - Acceptance criteria: Image resizing (300px, 1200px), format conversion (JPEG/WebP), upload to storage
   - Test strategy: Unit tests for image processing, integration tests for upload pipeline
 
-**Exit Criteria**: Photographers can authenticate, photos can be processed and stored
+**Exit Criteria**: Photographers can authenticate via better-auth, Photographer records linked to User records, photos can be processed and stored
 
-**Delivers**: Core infrastructure for user management and photo handling
+**Delivers**: Core infrastructure for authentication (better-auth) and photographer business data management (Photographer model) and photo handling
 
 ---
 
@@ -919,20 +921,49 @@ Keep this section AFTER functional/structural decomposition - implementation det
 ### Database Schema
 
 ```prisma
+// Better-auth managed User model (created by better-auth CLI)
 model User {
-  id            String   @id @default(cuid())
+  id            String   @id
   email         String   @unique
-  name          String
-  passwordHash  String?
-  googleId      String?  @unique
+  emailVerified Boolean  @default(false)
+  name          String?
+  image         String?
   createdAt     DateTime @default(now())
-  albums        Album[]
+  updatedAt     DateTime @updatedAt
+  
+  // Better-auth relationships
+  sessions Session[]
+  accounts Account[]
+  
+  // Link to Photographer (one-to-one)
+  photographer Photographer?
+  
+  @@map("user")
+}
+
+// Photographer business data (separate from authentication)
+model Photographer {
+  id                String    @id @default(cuid())
+  userId            String    @unique @map("user_id") // One-to-one with better-auth User
+  name              String?   // Display name (can also use User.name)
+  apiToken          String?   @map("api_token") // Hashed API token for Lightroom plugin
+  apiTokenCreatedAt DateTime? @map("api_token_created_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
+  // Relationships
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  albums Album[]
+  
+  @@index([userId])
+  @@index([apiToken])
+  @@map("photographers")
 }
 
 model Album {
   id            String        @id @default(cuid())
-  photographerId String
-  photographer  User          @relation(fields: [photographerId], references: [id])
+  photographerId String       @map("photographer_id") // References Photographer, not User
+  photographer  Photographer  @relation(fields: [photographerId], references: [id], onDelete: Cascade)
   title         String
   passwordHash  String
   deadline      DateTime
@@ -999,7 +1030,7 @@ enum AlbumStatus {
 - **Database**: PostgreSQL
 - **Storage**: Cloudflare R2
 - **Image Processing**: Sharp
-- **Authentication**: JWT, bcrypt, session cookies (Google OAuth planned for future version)
+- **Authentication**: better-auth with Prisma adapter, session cookies (Google OAuth planned for future version via better-auth OAuth providers)
 - **Scheduled Jobs**: Background job processing for deadline auto-submission (e.g., node-cron, Bull, or Vercel Cron)
 - **File Uploads**: Web-standard FormData API with streaming support
 

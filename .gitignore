@@ -63,3 +63,5 @@ node_modules/
 # tasks/ 
 
 /src/generated/prisma
+
+.cursor

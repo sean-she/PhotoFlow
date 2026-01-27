@@ -1,36 +1,94 @@
 import { PrismaClient, AlbumStatus } from '../src/generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import 'dotenv/config';
 import * as bcrypt from 'bcrypt';
 
-const prisma = new PrismaClient(undefined as any);
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+})
+
+const prisma = new PrismaClient({
+  adapter,
+});
+
 
 async function main() {
   console.log('🌱 Starting seed...');
 
   // Clear existing data (for development only)
+  // Note: Order matters due to foreign key constraints
   console.log('🧹 Clearing existing data...');
   await prisma.photoSelection.deleteMany();
   await prisma.photo.deleteMany();
   await prisma.albumClient.deleteMany();
   await prisma.album.deleteMany();
+  await prisma.photographer.deleteMany(); // Must delete before User due to FK
+  await prisma.session.deleteMany(); // Better-auth sessions
+  await prisma.account.deleteMany(); // Better-auth accounts
+  await prisma.verification.deleteMany(); // Better-auth verification
   await prisma.user.deleteMany();
 
-  // Hash password for test users (password: "password123")
-  const hashedPassword = await bcrypt.hash('password123', 10);
-
-  // Create photographer users
-  console.log('👤 Creating photographer users...');
-  const photographer1 = await prisma.user.create({
+  // Create User records (better-auth managed)
+  // Note: In production, users should be created via better-auth sign-up flow
+  // For seeding, we create them directly, but passwords are managed by better-auth
+  console.log('👤 Creating user accounts...');
+  // Generate IDs for better-auth User records (better-auth doesn't auto-generate)
+  const userId1 = `user_${Date.now()}_1`;
+  const userId2 = `user_${Date.now()}_2`;
+  
+  const user1 = await prisma.user.create({
     data: {
+      id: userId1,
       email: 'photographer1@example.com',
-      passwordHash: hashedPassword,
+      name: 'John Photographer',
+      emailVerified: true, // For testing, mark as verified
+    },
+  });
+
+  const user2 = await prisma.user.create({
+    data: {
+      id: userId2,
+      email: 'photographer2@example.com',
+      name: 'Jane Smith',
+      emailVerified: true, // For testing, mark as verified
+    },
+  });
+
+  // Create Account records for email/password authentication
+  // Better-auth stores passwords in the Account model, not User
+  const hashedPassword = await bcrypt.hash('password123', 10);
+  await prisma.account.create({
+    data: {
+      id: `account-${user1.id}`,
+      accountId: user1.email,
+      providerId: 'credential',
+      userId: user1.id,
+      password: hashedPassword,
+    },
+  });
+
+  await prisma.account.create({
+    data: {
+      id: `account-${user2.id}`,
+      accountId: user2.email,
+      providerId: 'credential',
+      userId: user2.id,
+      password: hashedPassword,
+    },
+  });
+
+  // Create Photographer records (business data)
+  console.log('📸 Creating photographer profiles...');
+  const photographer1 = await prisma.photographer.create({
+    data: {
+      userId: user1.id,
       name: 'John Photographer',
     },
   });
 
-  const photographer2 = await prisma.user.create({
+  const photographer2 = await prisma.photographer.create({
     data: {
-      email: 'photographer2@example.com',
-      passwordHash: hashedPassword,
+      userId: user2.id,
       name: 'Jane Smith',
     },
   });
@@ -44,7 +102,7 @@ async function main() {
       title: 'Summer Wedding 2024',
       description: 'Beautiful outdoor wedding ceremony and reception',
       status: AlbumStatus.OPEN,
-      userId: photographer1.id,
+      photographerId: photographer1.id, // Changed from userId
     },
   });
 
@@ -53,7 +111,7 @@ async function main() {
       title: 'Family Portraits',
       description: 'Professional family portrait session',
       status: AlbumStatus.OPEN,
-      userId: photographer1.id,
+      photographerId: photographer1.id, // Changed from userId
     },
   });
 
@@ -62,7 +120,7 @@ async function main() {
       title: 'Corporate Event - Draft',
       description: 'Company annual meeting photos',
       status: AlbumStatus.DRAFT,
-      userId: photographer1.id,
+      photographerId: photographer1.id, // Changed from userId
     },
   });
 
@@ -71,7 +129,7 @@ async function main() {
       title: 'Graduation Ceremony 2023',
       description: 'High school graduation photos',
       status: AlbumStatus.CLOSED,
-      userId: photographer2.id,
+      photographerId: photographer2.id, // Changed from userId
     },
   });
 
@@ -80,7 +138,7 @@ async function main() {
       title: 'Old Project Archive',
       description: 'Archived project from 2022',
       status: AlbumStatus.ARCHIVED,
-      userId: photographer2.id,
+      photographerId: photographer2.id, // Changed from userId
     },
   });
 
