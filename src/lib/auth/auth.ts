@@ -11,6 +11,7 @@ import { prismaAdapter } from 'better-auth/adapters/prisma'
 import prisma from '@/lib/prisma'
 
 export const auth = betterAuth({
+  // basePath: "/api/auth",
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
@@ -21,25 +22,32 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24, // 1 day
   },
-  callbacks: {
-    /**
-     * Automatically create a Photographer record after user sign-up
-     * This links the authentication User to the business Photographer model
-     */
-    async afterSignUp({ user }: { user: { id: string; name: string | null; email: string } }) {
-      try {
-        await prisma.photographer.create({
-          data: {
-            userId: user.id,
-            name: user.name || null,
-          },
-        });
-        console.log(`✅ Created photographer profile for user ${user.id}`);
-      } catch (error) {
-        // Log error but don't fail sign-up
-        // In production, you might want to throw here or use a retry mechanism
-        console.error('Failed to create photographer profile:', error);
-      }
+  databaseHooks: {
+    user: {
+      create: {
+        /**
+         * Automatically create a Photographer record after user creation
+         * This links the authentication User to the business Photographer model
+         * 
+         * The `after` hook receives the created user object and runs after
+         * the user has been successfully persisted to the database.
+         */
+        after: async (user) => {
+          try {
+            await prisma.photographer.create({
+              data: {
+                userId: user.id,
+                name: user.name || null,
+              },
+            });
+            console.log(`✅ Created photographer profile for user ${user.id}`);
+          } catch (error) {
+            // Log error but don't fail sign-up
+            // In production, you might want to throw here or use a retry mechanism
+            console.error('Failed to create photographer profile:', error);
+          }
+        },
+      },
     },
   },
   // CSRF protection is enabled by default

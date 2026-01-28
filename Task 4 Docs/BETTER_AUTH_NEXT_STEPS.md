@@ -52,12 +52,12 @@ Test that sign-up and sign-in work correctly:
 npm run dev
 
 # In another terminal, test sign-up
-curl -X POST http://localhost:3000/api/auth/sign-up \
+curl -X POST http://localhost:3000/api/auth/sign-up/email \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password123","name":"Test User"}'
 
 # Test sign-in
-curl -X POST http://localhost:3000/api/auth/sign-in \
+curl -X POST http://localhost:3000/api/auth/sign-in/email \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password123"}'
 ```

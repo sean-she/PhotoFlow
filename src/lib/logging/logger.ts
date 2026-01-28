@@ -109,7 +109,26 @@ export function createLogger(config: LoggerConfig = {}): Logger {
     }),
   };
 
-  // Create logger with appropriate transport
+  // Check if we're in Edge Runtime
+  const isEdgeRuntime = 
+    typeof (globalThis as any).EdgeRuntime !== "undefined" ||
+    (typeof process !== "undefined" && process.env.NEXT_RUNTIME === "edge");
+
+  // In Edge Runtime, use simple logger without transports
+  if (isEdgeRuntime) {
+    // Edge Runtime doesn't support pino.transport
+    // Use basic logger with pretty printing disabled (handled by formatters)
+    return pino({
+      ...loggerOptions,
+      // In Edge Runtime, we can't use pino-pretty transport
+      // So we use JSON format which works everywhere
+      formatters: {
+        ...loggerOptions.formatters,
+      },
+    });
+  }
+
+  // Create logger with appropriate transport (Node.js runtime only)
   if (isDevelopment && (config.pretty !== false)) {
     // Use pino-pretty in development
     return pino(loggerOptions, pino.transport({

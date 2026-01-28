@@ -10,12 +10,14 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getLogger, createRequestLoggerFromNextRequest } from "@/lib/logging";
+import { getLogger, createRequestLoggerFromNextRequest, extractNextRequestContext } from "@/lib/logging";
 
 /**
  * Middleware configuration
+ * 
+ * Must be exported directly (not re-exported) for Next.js to parse it at compile time.
  */
-const config = {
+export const config = {
   // Paths that should be excluded from middleware processing
   matcher: [
     /*
@@ -39,6 +41,10 @@ const config = {
  * @returns NextResponse or void (to continue processing)
  */
 export function middleware(request: NextRequest): NextResponse | void {
+  // Extract request context to get request ID
+  const requestContext = extractNextRequestContext(request);
+  const requestId = requestContext.requestId;
+  
   // Create request-scoped logger
   const logger = createRequestLoggerFromNextRequest(getLogger(), request);
   
@@ -102,7 +108,7 @@ export function middleware(request: NextRequest): NextResponse | void {
   const response = NextResponse.next();
 
   // Add custom headers if needed
-  response.headers.set("X-Request-ID", logger.bindings().requestId as string);
+  response.headers.set("X-Request-ID", requestId);
 
   // Log response timing (after response is sent)
   // Note: We can't easily hook into response finish in middleware,
@@ -113,6 +119,4 @@ export function middleware(request: NextRequest): NextResponse | void {
 
   return response;
 }
-
-export { config };
 

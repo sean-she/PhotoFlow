@@ -9,7 +9,6 @@
 
 import type { Logger } from "pino";
 import type { NextRequest } from "next/server";
-import { randomBytes } from "node:crypto";
 
 /**
  * Request context stored in AsyncLocalStorage
@@ -43,13 +42,57 @@ export interface RequestContext {
 }
 
 /**
+ * Generate random bytes using Web Crypto API (Edge Runtime compatible)
+ * 
+ * @param length - Number of bytes to generate
+ * @returns Uint8Array of random bytes
+ */
+async function generateRandomBytes(length: number): Promise<Uint8Array> {
+  // Use Web Crypto API which works in both Node.js and Edge Runtime
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    const array = new Uint8Array(length);
+    crypto.getRandomValues(array);
+    return array;
+  }
+  
+  // Fallback for environments without Web Crypto API
+  // This should not happen in modern runtimes
+  throw new Error("Web Crypto API not available");
+}
+
+/**
+ * Convert Uint8Array to hex string
+ */
+function uint8ArrayToHex(array: Uint8Array): string {
+  return Array.from(array)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
  * Generate a unique request ID
+ * 
+ * Uses Web Crypto API for Edge Runtime compatibility.
  * 
  * @param prefix - Optional prefix for the request ID
  * @returns Unique request ID string
  */
 export function generateRequestId(prefix = "req"): string {
-  const randomPart = randomBytes(8).toString("hex");
+  // Use synchronous approach for Edge Runtime compatibility
+  // Generate random bytes synchronously using crypto.getRandomValues
+  const randomArray = new Uint8Array(8);
+  
+  // Web Crypto API is available in both Node.js and Edge Runtime
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(randomArray);
+  } else {
+    // Fallback: use Math.random (less secure but works everywhere)
+    for (let i = 0; i < randomArray.length; i++) {
+      randomArray[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  
+  const randomPart = uint8ArrayToHex(randomArray);
   const timestamp = Date.now().toString(36);
   return `${prefix}-${timestamp}-${randomPart}`;
 }

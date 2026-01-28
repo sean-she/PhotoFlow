@@ -9,8 +9,69 @@
 
 import type { Logger } from "pino";
 import pino from "pino";
-import { join } from "node:path";
-import { existsSync, mkdirSync } from "node:fs";
+
+/**
+ * Check if we're running in Edge Runtime
+ * Edge Runtime doesn't have Node.js built-in modules
+ */
+function isEdgeRuntime(): boolean {
+  return (
+    typeof (globalThis as any).EdgeRuntime !== "undefined" ||
+    (typeof process !== "undefined" && process.env.NEXT_RUNTIME === "edge")
+  );
+}
+
+/**
+ * Simple path join for non-Edge environments
+ * Only used when not in Edge Runtime
+ * Uses simple string joining to avoid Node.js path module
+ */
+function joinPath(...parts: string[]): string {
+  if (isEdgeRuntime()) {
+    throw new Error("Path operations are not available in Edge Runtime");
+  }
+  // Simple path joining - works for most cases
+  // In Node.js, this would normally use path.join, but we avoid importing it
+  return parts.filter(Boolean).join("/").replace(/\/+/g, "/");
+}
+
+/**
+ * Check if directory exists (Node.js only)
+ * Uses dynamic require to avoid static analysis by bundler
+ */
+function directoryExists(dir: string): boolean {
+  if (isEdgeRuntime()) {
+    return false;
+  }
+  // This will only be called in Node.js runtime
+  // Use dynamic require with string concatenation to avoid static analysis
+  try {
+    const nodeFs = "node:fs";
+    const fs = eval(`require(${JSON.stringify(nodeFs)})`);
+    return fs.existsSync(dir);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Create directory (Node.js only)
+ * Uses dynamic require to avoid static analysis by bundler
+ */
+function createDirectory(dir: string): void {
+  if (isEdgeRuntime()) {
+    throw new Error("File system operations are not available in Edge Runtime");
+  }
+  try {
+    const nodeFs = "node:fs";
+    const fs = eval(`require(${JSON.stringify(nodeFs)})`);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  } catch (error) {
+    throw new Error(`Failed to create directory: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
 
 /**
  * File transport configuration
@@ -91,6 +152,11 @@ export interface TransportConfig {
  * Create file transport configuration
  */
 function createFileTransport(config: FileTransportConfig): pino.TransportTargetOptions {
+  // File transports are not supported in Edge Runtime
+  if (isEdgeRuntime()) {
+    throw new Error("File transport is not supported in Edge Runtime. Use console transport instead.");
+  }
+
   const directory = config.directory || "./logs";
   const filename = config.filename || "app-%DATE%.log";
   const maxSize = config.maxSize || "10M";
@@ -98,11 +164,11 @@ function createFileTransport(config: FileTransportConfig): pino.TransportTargetO
   const level = config.level || "info";
 
   // Ensure log directory exists
-  if (!existsSync(directory)) {
-    mkdirSync(directory, { recursive: true });
+  if (!directoryExists(directory)) {
+    createDirectory(directory);
   }
 
-  const filePath = join(directory, filename);
+  const filePath = joinPath(directory, filename);
 
   return {
     target: "pino-roll",
@@ -166,10 +232,15 @@ export function createLoggerWithTransports(config: TransportConfig = {}): Logger
     transports.push(createConsoleTransport(consoleConfig, env));
   }
 
-  // File transport
-  if (config.file) {
-    const fileConfig = typeof config.file === "object" ? config.file : {};
-    transports.push(createFileTransport(fileConfig));
+  // File transport (only in Node.js runtime, not Edge Runtime)
+  if (config.file && !isEdgeRuntime()) {
+    try {
+      const fileConfig = typeof config.file === "object" ? config.file : {};
+      transports.push(createFileTransport(fileConfig));
+    } catch (error) {
+      // If file transport fails (e.g., in Edge Runtime), fall back to console
+      console.warn("File transport not available, using console transport:", error instanceof Error ? error.message : String(error));
+    }
   }
 
   // If no transports, use default console
