@@ -1,46 +1,43 @@
 /**
- * Next.js Middleware
+ * Next.js 16+ Proxy
  * 
- * Global middleware that runs before requests are processed.
+ * Global proxy that runs before requests are processed.
  * Handles authentication, logging, CORS, and other cross-cutting concerns.
  * 
- * This middleware runs on the Edge Runtime for optimal performance.
+ * Uses Node.js runtime for full session validation with database checks.
  * 
- * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
+ * @see https://nextjs.org/docs/app/api-reference/file-conventions/proxy
+ * @see https://www.better-auth.com/docs/integrations/next#nextjs-16-proxy
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getLogger, createRequestLoggerFromNextRequest, extractNextRequestContext } from "@/lib/logging";
 
 /**
- * Middleware configuration
+ * Proxy configuration
  * 
  * Must be exported directly (not re-exported) for Next.js to parse it at compile time.
  */
 export const config = {
-  // Paths that should be excluded from middleware processing
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (images, etc.)
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  // Specify the routes the proxy applies to
+  matcher: ["/dashboard"], // Specify the routes the middleware applies to
 };
 
 /**
- * Main middleware function
+ * Main proxy function
  * 
- * This runs on every request before it reaches route handlers.
+ * This runs on every matched request before it reaches route handlers.
+ * 
+ * THIS IS NOT SECURE!
+ * This is the recommended approach to optimistically redirect users.
+ * We recommend handling auth checks in each page/route.
  * 
  * @param request - The incoming NextRequest
- * @returns NextResponse or void (to continue processing)
+ * @returns NextResponse for redirects or to continue processing
  */
-export function proxy(request: NextRequest): NextResponse | void {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   // Extract request context to get request ID
   const requestContext = extractNextRequestContext(request);
   const requestId = requestContext.requestId;
@@ -62,47 +59,21 @@ export function proxy(request: NextRequest): NextResponse | void {
           "unknown",
       userAgent: request.headers.get("user-agent"),
     },
-    `Middleware: ${request.method} ${url.pathname}`
+    `Proxy: ${request.method} ${url.pathname}`
   );
 
-  // CORS headers (if needed for API routes)
-  // Uncomment and configure if you need CORS
-  /*
-  if (url.pathname.startsWith("/api/")) {
-    const response = NextResponse.next();
-    response.headers.set("Access-Control-Allow-Origin", "*");
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    return response;
-  }
-  */
+  // Full session validation with database check
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
 
-  // Authentication checks (example - implement based on your auth strategy)
-  // Uncomment and implement when authentication is ready
-  /*
-  const token = request.headers.get("authorization")?.replace("Bearer ", "");
-  if (url.pathname.startsWith("/api/protected") && !token) {
+  // THIS IS NOT SECURE!
+  // This is the recommended approach to optimistically redirect users
+  // We recommend handling auth checks in each page/route
+  if (!session) {
     logger.warn({ pathname: url.pathname }, "Unauthenticated request to protected route");
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    return NextResponse.redirect(new URL("/sign-in", request.url));
   }
-  */
-
-  // Rate limiting (example - implement based on your needs)
-  // Consider using a library like @upstash/ratelimit for production
-  /*
-  const rateLimitKey = request.ip || "unknown";
-  // Check rate limit
-  if (isRateLimited(rateLimitKey)) {
-    logger.warn({ ip: rateLimitKey, pathname: url.pathname }, "Rate limit exceeded");
-    return NextResponse.json(
-      { error: "Too many requests" },
-      { status: 429 }
-    );
-  }
-  */
 
   // Continue processing - let the request proceed to route handlers
   const response = NextResponse.next();
@@ -110,12 +81,9 @@ export function proxy(request: NextRequest): NextResponse | void {
   // Add custom headers if needed
   response.headers.set("X-Request-ID", requestId);
 
-  // Log response timing (after response is sent)
-  // Note: We can't easily hook into response finish in middleware,
-  // so this is logged immediately. For detailed response logging,
-  // use withRouteLogging in route handlers.
+  // Log response timing
   const duration = Math.round((performance.now() - startTime) * 100) / 100;
-  logger.debug({ duration, pathname: url.pathname }, "Middleware completed");
+  logger.debug({ duration, pathname: url.pathname }, "Proxy completed");
 
   return response;
 }
