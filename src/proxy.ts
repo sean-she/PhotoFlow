@@ -40,7 +40,7 @@ export const config = {
  * @param request - The incoming NextRequest
  * @returns NextResponse or void (to continue processing)
  */
-export function middleware(request: NextRequest): NextResponse | void {
+export function proxy(request: NextRequest): NextResponse | void {
   // Extract request context to get request ID
   const requestContext = extractNextRequestContext(request);
   const requestId = requestContext.requestId;
