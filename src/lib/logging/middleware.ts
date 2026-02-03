@@ -254,52 +254,87 @@ export function withRouteLogging(
     context?: RouteContext
   ): Promise<NextResponse> => {
     // Create request-scoped logger from NextRequest
-    const requestLogger = createRequestLoggerFromNextRequest(baseLogger, request);
+    let requestLogger: Logger;
+    try {
+      requestLogger = createRequestLoggerFromNextRequest(baseLogger, request);
+    } catch (error) {
+      // If logger creation fails, use console as fallback
+      console.warn("Failed to create request logger, using console fallback:", error instanceof Error ? error.message : error);
+      requestLogger = baseLogger;
+    }
     
     // Create timer for performance tracking
     const url = new URL(request.url);
-    const timer = createTimer(
-      requestLogger,
-      `${request.method} ${url.pathname}`
-    );
+    let timer: ReturnType<typeof createTimer> | null = null;
+    try {
+      timer = createTimer(
+        requestLogger,
+        `${request.method} ${url.pathname}`
+      );
+    } catch (error) {
+      // If timer creation fails, continue without timing
+      console.warn("Failed to create timer, continuing without timing:", error instanceof Error ? error.message : error);
+    }
+
+    // Safe logging helper that falls back to console if Pino fails
+    const safeLog = (level: 'info' | 'warn' | 'error' | 'debug', data: Record<string, unknown>, message: string) => {
+      try {
+        requestLogger[level](data, message);
+      } catch (error) {
+        // Fallback to console if Pino logging fails (e.g., worker thread issues)
+        console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](`[${level.toUpperCase()}] ${message}`, data);
+      }
+    };
 
     try {
       // Log incoming request
-      requestLogger.info(
-        {
-          method: request.method,
-          url: request.url,
-          pathname: url.pathname,
-          searchParams: Object.fromEntries(url.searchParams),
-        },
-        `Incoming request: ${request.method} ${url.pathname}`
-      );
+      safeLog('info', {
+        method: request.method,
+        url: request.url,
+        pathname: url.pathname,
+        searchParams: Object.fromEntries(url.searchParams),
+      }, `Incoming request: ${request.method} ${url.pathname}`);
 
       // Execute handler
       const response = await handler(request, context);
 
       // Log response
       const statusCode = response.status;
-      timer.end({ statusCode });
+      try {
+        timer?.end({ statusCode });
+      } catch (error) {
+        // Timer end failed, continue without timing
+      }
       
-      requestLogger.info(
-        {
-          method: request.method,
-          pathname: url.pathname,
-          statusCode,
-        },
-        `Request completed: ${request.method} ${url.pathname} ${statusCode}`
-      );
+      safeLog('info', {
+        method: request.method,
+        pathname: url.pathname,
+        statusCode,
+      }, `Request completed: ${request.method} ${url.pathname} ${statusCode}`);
 
       return response;
     } catch (error) {
       // Log error
-      timer.end({ success: false });
-      logError(requestLogger, error, {
-        method: request.method,
-        url: request.url,
-        pathname: url.pathname,
-      });
+      try {
+        timer?.end({ success: false });
+      } catch {
+        // Timer end failed, continue
+      }
+      
+      try {
+        logError(requestLogger, error, {
+          method: request.method,
+          url: request.url,
+          pathname: url.pathname,
+        });
+      } catch (logError) {
+        // If error logging fails, use console as fallback
+        console.error("Request error:", error instanceof Error ? error.message : error, {
+          method: request.method,
+          url: request.url,
+          pathname: url.pathname,
+        });
+      }
       throw error;
     }
   };

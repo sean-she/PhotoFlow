@@ -609,6 +609,55 @@ The script will output:
 
 ---
 
+## Client Access Token Functionality Test
+
+Test script for client access token generation, validation, regeneration, and revocation.
+
+### Running the Test
+
+```bash
+npm run test:client-tokens
+```
+
+Or directly with tsx:
+
+```bash
+tsx scripts/test-client-tokens.ts
+```
+
+### What It Tests
+
+1. **Token Generation** - Tests token format (64 hex characters) and uniqueness (100 tokens)
+2. **Token Creation and Storage** - Tests creating tokens and storing them in the database
+3. **Token Validation - Valid Token** - Tests validating a valid token and retrieving client/album data
+4. **Token Validation - Invalid Token** - Tests that invalid tokens return null
+5. **Token Validation - Expired Token** - Tests that expired tokens return null
+6. **Token Regeneration** - Tests regenerating tokens and verifying old tokens are invalidated
+7. **Token Revocation** - Tests revoking tokens by generating new ones
+
+### Expected Output
+
+The script will output:
+- ✅ for passed tests
+- ❌ for failed tests
+- A summary at the end showing total passed/failed
+
+### Test Details
+
+- **Database required** - Tests create and clean up test data (users, photographers, albums, clients)
+- Tests all client token utilities including security, uniqueness, validation, and expiration handling
+- Tests token regeneration and revocation functionality
+- Automatically cleans up test data after completion
+- Validates that tokens are cryptographically secure (32 bytes, hex-encoded)
+
+### Prerequisites
+
+- Database connection configured in `.env` file
+- Prisma client generated (`npm run db:generate`)
+- Database migrations applied (`npm run db:migrate`)
+
+---
+
 ## Troubleshooting
 
 ### Common Issues

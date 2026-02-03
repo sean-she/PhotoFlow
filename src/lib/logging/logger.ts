@@ -128,18 +128,19 @@ export function createLogger(config: LoggerConfig = {}): Logger {
     });
   }
 
-  // Create logger with appropriate transport (Node.js runtime only)
+  // In development, use simple logger without transport to avoid worker thread issues
+  // pino-pretty uses worker threads which don't work well in Next.js dev mode
   if (isDevelopment && (config.pretty !== false)) {
-    // Use pino-pretty in development
-    return pino(loggerOptions, pino.transport({
-      target: "pino-pretty",
-      options: {
-        colorize: true,
-        translateTime: "HH:MM:ss.l",
-        ignore: "pid,hostname",
-        singleLine: false,
+    // Use basic logger with JSON output in development
+    // Next.js will handle pretty printing if needed
+    // This avoids worker thread issues with pino-pretty transport
+    return pino({
+      ...loggerOptions,
+      // Use simple JSON output that works reliably
+      formatters: {
+        ...loggerOptions.formatters,
       },
-    }));
+    });
   }
 
   // Production logger (JSON format)

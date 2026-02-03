@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "Design and Implement Database Schema with Prisma",
         "description": "Establish the foundational database schema using Prisma ORM for all core entities and relationships.",
         "details": "Define models for User, Album, Photo, AlbumClient, PhotoSelection, and enums for AlbumStatus in Prisma schema. Implement migrations and seed scripts. Use PostgreSQL 15+ for production. Ensure referential integrity and unique constraints (e.g., accessToken, photoId/clientId pairs).",
@@ -79,7 +79,7 @@
         "expansionPrompt": "Break down the schema design into entity-specific modeling, relationship mapping, constraint definition, migration setup, and seed data generation. For each subtask, specify the models involved, required constraints, and test cases for validation."
       },
       {
-        "id": 2,
+        "id": "2",
         "title": "Integrate Cloud Storage and CDN (Cloudflare R2)",
         "description": "Set up Cloudflare R2 for photo storage and CDN delivery, including hierarchical organization and CDN URL generation.",
         "details": "Configure Cloudflare R2 SDK (latest version) for Node.js. Implement file upload/download utilities, organize files by album/type, and generate CDN-optimized URLs. Set up lifecycle policies for archival and deletion. Abstract storage logic for future provider flexibility.",
@@ -178,7 +178,7 @@
         "updatedAt": "2025-12-02T07:50:36.490Z"
       },
       {
-        "id": 3,
+        "id": "3",
         "title": "Develop Shared Utilities Module",
         "description": "Create reusable utilities for error handling, validation, and logging across backend modules.",
         "details": "Implement TypeScript utility functions for input validation (e.g., zod v3), error formatting, and structured logging (e.g., pino v8). Export helpers for use in all modules.",
@@ -231,7 +231,7 @@
         "updatedAt": "2025-12-04T00:47:10.060Z"
       },
       {
-        "id": 4,
+        "id": "4",
         "title": "Implement Authentication & Authorization Module",
         "description": "Build authentication for photographers using better-auth and secure client access control (token generation/validation).",
         "details": "Use better-auth library with Prisma adapter for photographer authentication. better-auth creates its own `user` table via CLI generate command. Business data (API tokens, photographer info) is stored in separate `Photographers` table with one-to-one relationship to better-auth `User`. better-auth handles password hashing, session management, CSRF protection, and secure cookies automatically. Set up auth API route handler (app/api/auth/[...all]/route.ts) and auth client SDK for React components. Generate cryptographically secure client access tokens (node:crypto) for album access (separate from user auth). Create route protection utilities that use better-auth sessions and link to Photographer records.",
@@ -241,7 +241,7 @@
           "1",
           "3"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -249,9 +249,10 @@
             "description": "Install better-auth and use CLI to generate authentication tables",
             "dependencies": [],
             "details": "Install better-auth and @better-auth/prisma-adapter packages. Create lib/auth/config.ts to configure better-auth instance with Prisma adapter. Configure email/password authentication provider. Set up session management with secure cookie settings (30 days expiration). Configure CSRF protection and other security features. Run `npx @better-auth/cli@latest generate` to create better-auth tables (user, session, account, verification) in Prisma schema. better-auth handles password hashing automatically (no need for manual bcrypt). The CLI will add User, Session, Account, and Verification models to your schema.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for better-auth configuration. Integration tests to verify Prisma adapter connection. Verify better-auth tables are created correctly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T00:50:05.191Z"
           },
           {
             "id": 2,
@@ -261,9 +262,10 @@
               1
             ],
             "details": "Create app/api/auth/[...all]/route.ts that exports GET and POST handlers using better-auth's Next.js integration helper. This single route handles all auth endpoints: sign-in, sign-up, sign-out, session, and callback routes automatically. better-auth manages session creation, validation, and refresh internally. No manual JWT or token management needed - better-auth uses secure session cookies.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests for sign-in, sign-up, sign-out, and session endpoints. Test session cookie handling and CSRF protection.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T00:50:05.199Z"
           },
           {
             "id": 3,
@@ -274,9 +276,10 @@
               2
             ],
             "details": "Create lib/auth/client.ts that exports the better-auth client instance configured with base URL (/api/auth). This client provides typed methods like signIn, signUp, signOut, getSession, and hooks like useSession for React components. Use this client in sign-in/sign-up pages, dashboard components, and server components. The client handles all auth operations and session management automatically.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests for client SDK methods. Test useSession hook in React components. Test server-side session retrieval.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T00:50:05.203Z"
           },
           {
             "id": 4,
@@ -286,9 +289,10 @@
               1
             ],
             "details": "Add Photographer model to Prisma schema with one-to-one relationship to better-auth User model. Photographer model includes: userId (unique foreign key to User), name, apiToken, apiTokenCreatedAt, createdAt, updatedAt. Update Album model to reference Photographer instead of User (change userId to photographerId). Create migration to add photographers table and update albums foreign key. After user sign-up, create Photographer record linked to the User. This separates authentication data (better-auth User) from business data (Photographer).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for Photographer model structure. Integration tests for User-Photographer relationship. Test album creation with photographerId. Test cascade deletes.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T00:50:05.206Z"
           },
           {
             "id": 8,
@@ -300,9 +304,10 @@
               4
             ],
             "details": "Create lib/auth/guards.ts with route protection utilities. Implement requireAuth() function for route handlers that uses better-auth's getSession() to validate sessions from cookies. Implement requirePhotographer() function that validates session, then looks up Photographer record linked to User. This function returns both User and Photographer data. Create utilities for optional authentication on semi-public routes. Handle and format authentication errors consistently using NextResponse.json. Integrate with the shared error handling utilities from Task 3. better-auth handles session validation automatically - we check if session exists, extract user data, then link to Photographer.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for guard functions. Integration tests with protected routes to verify proper authentication and authorization enforcement. Test requirePhotographer() links User to Photographer correctly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T00:50:05.215Z"
           },
           {
             "id": 5,
@@ -313,9 +318,10 @@
               8
             ],
             "details": "API tokens are stored in Photographer model (apiToken and apiTokenCreatedAt fields), not User model. Implement cryptographically secure API token generation using node:crypto (minimum 32 bytes, hex-encoded). Hash tokens with bcrypt before storing in Photographer.apiToken field. Create token validation utility (validateApiToken()) for Lightroom plugin routes that looks up Photographer by token hash. Implement token generation/regeneration functionality for photographers in dashboard (updates Photographer record). Add requireApiToken() middleware for plugin API routes (app/api/lightroom/*). Tokens are separate from user sessions - used for automated plugin authentication. After token validation, can access associated User via Photographer.userId relationship.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for token generation security and uniqueness. Integration tests for token validation, hashing, and regeneration flows. Test plugin route protection. Test token lookup in Photographer model.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T00:50:05.208Z"
           },
           {
             "id": 7,
@@ -324,10 +330,11 @@
             "dependencies": [
               8
             ],
-            "details": "Implement cryptographically secure random token generation for client access using node:crypto. Create database storage and lookup mechanisms for tokens. Ensure tokens are sufficiently random (minimum 32 bytes, hex-encoded). Add token validation utility function (validateClientToken()) for client route handlers. Implement token regeneration functionality for photographers to reset client access. Use Next.js route handlers for client access endpoints (app/api/client/[token]/route.ts). Note: This is separate from API tokens - these are for client album access, not plugin authentication. Client tokens are stored in AlbumClient model, not Photographer model.",
-            "status": "pending",
+            "details": "Implement cryptographically secure random token generation for client access using node:crypto. Create database storage and lookup mechanisms for tokens. Ensure tokens are sufficiently random (minimum 32 bytes, hex-encoded). Add token validation utility function (validateClientToken()) for client route handlers. Implement token regeneration functionality for photographers to reset client access. Use Next.js route handlers for client access endpoints (app/api/client/[token]/route.ts). Note: This is separate from API tokens - these are for client album access, not plugin authentication. Client tokens are stored in AlbumClient model, not Photographer model.\n<info added on 2026-02-03T02:03:07.114Z>\nImplementation completed for client access token generation.\n\n**Files Created:**\n1. `src/lib/auth/client-token.ts` - Client token utilities:\n   - `generateClientToken()` - Generates 32-byte hex-encoded tokens\n   - `createClientToken()` - Creates and stores token for AlbumClient\n   - `regenerateClientToken()` - Regenerates token (for resetting access)\n   - `validateClientToken()` - Validates token and returns client/album data\n   - `revokeClientToken()` - Revokes token by generating new one\n\n2. `src/app/api/client/[token]/route.ts` - Client access route handler:\n   - GET endpoint that validates token and returns album data\n   - Includes photos with selection status\n   - Uses proper error handling and logging middleware\n   - Checks album status (blocks DRAFT albums)\n   - Returns client info, album data, photos, and selection counts\n\n**Key Implementation Details:**\n- Client tokens are NOT hashed (stored directly, unique lookup)\n- Tokens are 32 bytes (64 hex characters) - cryptographically secure\n- Tokens stored in AlbumClient.accessToken field (unique index)\n- Token expiration is checked during validation\n- Route handler follows Next.js 15 async params pattern\n- Uses existing error handling and logging utilities\n\n**Exports Updated:**\n- Updated `src/lib/auth/index.ts` to export client token utilities\n\n**Testing Status:**\nReady for testing. Need to verify:\n- Token generation creates unique tokens\n- Token validation works correctly\n- Route handler returns proper data\n- Error handling works for invalid/expired tokens\n</info added on 2026-02-03T02:03:07.114Z>\n<info added on 2026-02-03T04:15:59.854Z>\n**Future Consideration - Photographer API Endpoint for Token Regeneration:**\n\nThe task mentions \"token regeneration functionality for photographers to reset client access.\" The core functionality (`regenerateClientToken()` and `revokeClientToken()`) is implemented in `client-token.ts`, but a photographer-facing API endpoint is not yet created.\n\n**Future Work (Optional):**\n- Create API endpoint: `PUT /api/albums/[albumId]/clients/[clientId]/regenerate-token` or similar\n- Add UI in photographer dashboard to trigger token regeneration\n- This would allow photographers to reset client access tokens from their dashboard\n\n**Note:** This is not required for the current task completion. The token regeneration utilities are fully functional and can be used by photographers through a future API endpoint when needed.\n</info added on 2026-02-03T04:15:59.854Z>",
+            "status": "done",
             "testStrategy": "Unit tests for token generation security and uniqueness. Integration tests for token validation and regeneration flows.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T04:21:19.147Z"
           },
           {
             "id": 6,
@@ -338,17 +345,19 @@
               3
             ],
             "details": "Configure better-auth session expiration settings in lib/auth/config.ts (30 days as specified). better-auth automatically handles session expiration and cleanup via database. Configure client token expiration (separate from user sessions, configurable per album). Add forced logout capability using better-auth's session invalidation features if needed. better-auth handles all session management automatically - we just configure the settings.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests for session expiration scenarios. Test forced logout functionality. Verify session cleanup works correctly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T00:50:05.211Z"
           }
         ],
         "complexity": 8,
-        "recommendedSubtasks": 7,
-        "expansionPrompt": "Break down the authentication module into: 1) better-auth CLI generate and configuration, 2) API route handler setup, 3) client SDK creation, 4) Photographers table creation and User linking, 5) route protection utilities (requireAuth, requirePhotographer), 6) API token system for Lightroom plugin (stored in Photographer model), 7) client token generation (custom for album access), and 8) session configuration. For each subtask, detail the better-auth integration, Prisma adapter setup, Photographer-User relationship, Next.js route handler patterns, and test cases for authentication flows."
+        "recommendedSubtasks": 6,
+        "expansionPrompt": "Break down the authentication module into password hashing, JWT management, login/refresh endpoints, middleware, client token generation, and session management. For each subtask, detail the security requirements, token handling, and test cases for authentication flows.",
+        "updatedAt": "2026-02-03T04:21:19.147Z"
       },
       {
-        "id": 5,
+        "id": "5",
         "title": "Build Photo Upload and Processing Pipeline",
         "description": "Enable photo uploads from Lightroom plugin, process images into multiple resolutions, and store in R2.",
         "details": "Use multer v2 for multipart uploads, sharp v0.32 for image resizing (300px thumbnails, 1200px previews, WebP/JPEG conversion). Validate file types, extract metadata, and store files in R2. Create database records for each photo.",
@@ -398,10 +407,10 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Expand the pipeline into multipart upload handling (Next.js FormData API), image processing, and storage/database integration. For each subtask, specify the libraries to use (e.g., Sharp for image processing), Next.js route handler patterns for file uploads, the processing steps, and the test cases for file validation and error recovery."
+        "expansionPrompt": "Expand the pipeline into multipart upload handling, image processing, and storage/database integration. For each subtask, specify the libraries to use (e.g., Multer, Sharp), the processing steps, and the test cases for file validation and error recovery."
       },
       {
-        "id": 6,
+        "id": "6",
         "title": "Develop Album Management Module",
         "description": "Implement album creation, configuration, client invitation, status management, and resubmission control.",
         "details": "Create endpoints for album CRUD, client invitations (unique token/link generation), album status transitions (OPEN/CLOSED), and manual resubmission control. Enforce business rules for status changes and resubmission eligibility.",
@@ -479,10 +488,10 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down the album management module into CRUD route handlers (Next.js), client invitation system, status management, resubmission control, and business rules validation. For each subtask, detail the Next.js route handlers (app/api/albums/**/route.ts), business logic in core modules (lib/albums), and test cases for edge scenarios."
+        "expansionPrompt": "Break down the album management module into CRUD endpoints, client invitation system, status management, resubmission control, and business rules validation. For each subtask, detail the API endpoints, business logic, and test cases for edge scenarios."
       },
       {
-        "id": 7,
+        "id": "7",
         "title": "Implement Client Photo Selection Module",
         "description": "Enable clients to browse galleries, select/deselect photos, submit selections, and enforce deadlines.",
         "details": "Build endpoints for gallery display (with pagination), selection toggling, submission locking, and deadline enforcement. Support read-only mode when album is CLOSED. Implement scheduled job for deadline auto-submission (node-cron v3 or BullMQ v4).",
@@ -557,10 +566,10 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Expand the selection module into gallery display route handlers, selection/deselection logic, submission flow, deadline enforcement, and read-only mode. For each subtask, specify the Next.js route handlers (app/api/selections/**/route.ts), business logic in core modules (lib/selections), and test cases for edge scenarios."
+        "expansionPrompt": "Expand the selection module into gallery display, selection/deselection logic, submission flow, deadline enforcement, and read-only mode. For each subtask, specify the API endpoints, business logic, and test cases for edge scenarios."
       },
       {
-        "id": 8,
+        "id": "8",
         "title": "Develop Selection Synchronization Module",
         "description": "Provide APIs for Lightroom plugin to retrieve client selections and aggregate multi-client data.",
         "details": "Implement endpoints for selection retrieval (authenticated), aggregation of selections per photo, and formatting for plugin consumption. Ensure efficient queries and support for large datasets.",
@@ -613,10 +622,10 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Expand the synchronization module into selection retrieval route handlers (Next.js), aggregation service, and plugin data formatting. For each subtask, detail the Next.js route handlers (app/api/sync/**/route.ts), aggregation logic in core modules (lib/sync), and test cases for edge scenarios."
+        "expansionPrompt": "Expand the synchronization module into selection retrieval API, aggregation service, and plugin data formatting. For each subtask, detail the API endpoints, aggregation logic, and test cases for edge scenarios."
       },
       {
-        "id": 9,
+        "id": "9",
         "title": "Build Progress Tracking and Notification System",
         "description": "Create dashboard APIs for progress metrics and implement email notifications for key events.",
         "details": "Use nodemailer v6 or Resend API for email delivery. Implement dashboard endpoints for client submission status, selection counts, and completion rates. Schedule reminders and notifications for deadline pass, auto-submission, and resubmission permissions.",
@@ -670,7 +679,7 @@
         "expansionPrompt": "Expand the notification system into dashboard API endpoints, email notification service, and scheduled jobs. For each subtask, detail the API endpoints, notification logic, and test cases for edge scenarios."
       },
       {
-        "id": 10,
+        "id": "10",
         "title": "Implement File Storage Lifecycle Management",
         "description": "Apply retention policies and optimize storage costs for photo files in R2.",
         "details": "Evaluate file age and album status to schedule archival or deletion. Use R2 lifecycle rules and periodic background jobs. Optimize storage tiers and monitor usage.",
@@ -736,7 +745,7 @@
         "expansionPrompt": "Expand the lifecycle management into retention policies, background jobs, R2 lifecycle rules, and storage monitoring. For each subtask, detail the policy logic, job scheduling, and test cases for edge scenarios."
       },
       {
-        "id": 11,
+        "id": "11",
         "title": "Integrate CDN for Fast Photo Delivery",
         "description": "Serve photos via Cloudflare CDN, configure caching, and handle edge delivery.",
         "details": "Generate CDN URLs for all photo assets, configure cache headers, and test edge delivery performance. Ensure URLs are accessible globally and optimize for mobile.",
@@ -791,7 +800,7 @@
         "expansionPrompt": "Expand the CDN integration into URL generation, cache header configuration, and performance testing. For each subtask, detail the URL generation logic, cache header settings, and test cases for edge scenarios."
       },
       {
-        "id": 12,
+        "id": "12",
         "title": "Develop REST API Routes with OpenAPI Documentation",
         "description": "Expose all backend functionality via RESTful API endpoints and generate OpenAPI docs.",
         "details": "Use Next.js 14+ App Router with TypeScript. Implement route handlers (app/api/**/route.ts) for albums, photos, selections, sync, notifications, and authentication enforcement. Use Server Actions (actions/**) for UI-driven mutations. Validate requests using zod schemas at route handler boundaries. Keep route handlers thin - delegate to core business logic modules in lib/. Use NextRequest/NextResponse for all route handlers. Integrate better-auth for authentication with secure, session-based cookies and server-side session retrieval via better-auth helpers (for example, getSession() or requireAuth()). Generate OpenAPI documentation separately if needed (e.g., using next-swagger-doc or manual documentation).",
@@ -814,7 +823,8 @@
             "dependencies": [],
             "details": "Create Next.js route handler structure in app/api/ for all modules (auth, albums, photos, selections, sync, notifications). Use better-auth's built-in catch-all handler at app/api/auth/[...all]/route.ts for login, logout, and session management instead of manually implementing these endpoints. Use better-auth utilities such as getSession() or requireAuth() in route handlers and middleware to enforce authentication using secure, session-based cookies. Use requirePhotographer() utility to get both User (from better-auth) and Photographer (business data) records. Album routes should use photographerId (from Photographer model) not userId (from User model). Create Next.js middleware.ts for global route protection where appropriate, delegating authentication checks to better-auth. Implement requireAuth() and requirePhotographer() utilities that wrap better-auth session retrieval. requirePhotographer() links User to Photographer via one-to-one relationship. Document route handlers and auth utilities with JSDoc comments (OpenAPI can be generated separately if needed).",
             "status": "pending",
-            "testStrategy": "Unit tests for authentication and authorization logic using better-auth sessions, integration tests for protected routes that verify access with and without a valid session, security testing for authentication bypass attempts, and OpenAPI schema validation for routes that rely on authenticated sessions.[1][5]"
+            "testStrategy": "Unit tests for authentication and authorization logic using better-auth sessions, integration tests for protected routes that verify access with and without a valid session, security testing for authentication bypass attempts, and OpenAPI schema validation for routes that rely on authenticated sessions.[1][5]",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -825,7 +835,8 @@
             ],
             "details": "Create Next.js route handlers for CRUD operations: app/api/albums/route.ts and app/api/albums/[albumId]/route.ts (albums), app/api/photos/route.ts and app/api/photos/[photoId]/route.ts (photos), app/api/selections/route.ts (selections). Implement GET, POST, PATCH, DELETE methods using NextRequest/NextResponse. Include filtering, pagination, and sorting using query parameters. Call core business logic modules (lib/albums, lib/photos, lib/selections) from route handlers. Validate request bodies using zod schemas at route handler boundaries. Implement proper error handling with NextResponse.json and appropriate HTTP status codes. For routes that require authentication, call better-auth getSession() or requireAuth() at the top of each handler instead of parsing or validating JWT or Bearer tokens. Document route handlers with JSDoc comments including request/response types and examples, and note which endpoints require an authenticated better-auth session.",
             "status": "pending",
-            "testStrategy": "Integration tests for all CRUD operations, edge case testing for validation errors, performance testing for collection endpoints with large datasets, verification of OpenAPI documentation accuracy, and tests that assert unauthorized access is blocked when better-auth sessions are missing or invalid.[1][5]"
+            "testStrategy": "Integration tests for all CRUD operations, edge case testing for validation errors, performance testing for collection endpoints with large datasets, verification of OpenAPI documentation accuracy, and tests that assert unauthorized access is blocked when better-auth sessions are missing or invalid.[1][5]",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -836,15 +847,16 @@
             ],
             "details": "Create Next.js route handlers for synchronization: app/api/sync/selections/route.ts and app/api/sync/albums/[albumId]/selections/route.ts for Lightroom plugin selection retrieval and aggregation. Implement notification route handlers in app/api/notifications/route.ts for client and photographer alerts. Use Server Actions for UI-driven notification triggers (e.g., 'send reminder now' button). Keep route handlers thin - delegate to core modules (lib/sync, lib/notifications). Validate requests using zod schemas. Configure CORS in next.config.ts or Next.js middleware. Implement rate limiting using Next.js middleware or an external service. For all sync and notification routes, rely on better-auth getSession() or requireAuth() to ensure only authenticated users can access or trigger actions, rather than relying on manual JWT, Bearer headers, or custom token validation. Document route handlers with JSDoc comments, including authentication requirements and session-based behavior. OpenAPI documentation can be generated separately using tools like next-swagger-doc if needed, and should describe session-based authentication via cookies instead of header-based Bearer tokens.",
             "status": "pending",
-            "testStrategy": "End-to-end testing of synchronization flows, integration tests for notification delivery, validation of generated OpenAPI documentation against actual implementation, load testing for rate-limited endpoints, and tests that ensure sync and notification endpoints correctly enforce better-auth session checks without depending on JWT headers.[1][5]"
+            "testStrategy": "End-to-end testing of synchronization flows, integration tests for notification delivery, validation of generated OpenAPI documentation against actual implementation, load testing for rate-limited endpoints, and tests that ensure sync and notification endpoints correctly enforce better-auth session checks without depending on JWT headers.[1][5]",
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Expand the API development into Next.js route handler structure (app/api/**/route.ts), Server Actions for UI mutations (actions/**), and documentation. For each subtask, detail the Next.js route handler patterns, core module integration (lib/**), validation with zod, and test cases for edge scenarios."
+        "expansionPrompt": "Expand the API development into route structure, endpoint implementation, and OpenAPI documentation. For each subtask, detail the route structure, endpoint logic, and test cases for edge scenarios."
       },
       {
-        "id": 13,
+        "id": "13",
         "title": "Develop Lightroom Plugin for Photo Upload and Selection Sync",
         "description": "Build Lua-based Lightroom Classic plugin for photo upload and selection synchronization.",
         "details": "Use Lightroom SDK (latest version), implement upload.lua for photo uploads, sync.lua for selection retrieval, and api-client.lua for HTTP requests. Handle authentication with the backend using better-auth-compatible session flows or token endpoints exposed by the backend, avoiding direct management of JWTs within the plugin where possible. Manage error states, and handle collection and album creation while coordinating identifiers with the backend API.[4][5]",
@@ -862,7 +874,8 @@
             "dependencies": [],
             "details": "Create the plugin directory structure with Info.lua for metadata, manifest.lrplugin, and main.lua entry point. Implement plugin registration with Lightroom SDK. Set up configuration dialogs for API endpoints and any authentication parameters required to interact with the better-auth-secured backend (for example, base URL or session-bootstrapping endpoint). Create localization files and resource management. Ensure plugin appears in Lightroom's plugin manager with proper versioning and update mechanism.[4]",
             "status": "pending",
-            "testStrategy": "Verify plugin loads correctly in Lightroom Classic, configuration settings persist between sessions, and plugin appears in plugin manager with correct metadata and updated authentication-related configuration fields.[4]"
+            "testStrategy": "Verify plugin loads correctly in Lightroom Classic, configuration settings persist between sessions, and plugin appears in plugin manager with correct metadata and updated authentication-related configuration fields.[4]",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -873,7 +886,8 @@
             ],
             "details": "Create upload.lua module that interfaces with Lightroom's photo selection API. Implement batch processing for multiple photo uploads with progress indicators. Extract relevant metadata (filename, capture time, dimensions, keywords). Develop api-client.lua for HTTP requests to backend upload endpoints that are protected by better-auth on the server, ensuring the plugin aligns with the server's chosen mechanism for associating uploads with authenticated users or access tokens. Handle rate limiting, connection errors, and retry logic. Implement album/collection creation and mapping between Lightroom collections and server albums. Add user feedback mechanisms for upload success/failure.[4]",
             "status": "pending",
-            "testStrategy": "Test with various photo sizes and formats, verify metadata extraction accuracy, simulate network failures to test retry logic, validate large batch uploads (100+ photos), and confirm that uploads succeed against better-auth-protected endpoints using the expected authentication flow.[4]"
+            "testStrategy": "Test with various photo sizes and formats, verify metadata extraction accuracy, simulate network failures to test retry logic, validate large batch uploads (100+ photos), and confirm that uploads succeed against better-auth-protected endpoints using the expected authentication flow.[4]",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -885,7 +899,8 @@
             ],
             "details": "Implement sync.lua to query the backend API for client photo selections, using api-client.lua to call endpoints that now enforce better-auth sessions on the server side. Create data structures to map server photo IDs to Lightroom photo IDs. Develop synchronization algorithm to apply client selections as flags, colors, or virtual copies in Lightroom. Add filtering options to view only selected/rejected photos. Implement background sync with configurable intervals. Create UI components for sync status and manual sync triggering. Handle conflict resolution for multiple client selections on the same photo. Implement error handling for sync failures and data inconsistencies.[4]",
             "status": "pending",
-            "testStrategy": "Test synchronization with various selection patterns, verify correct application of selections to Lightroom catalog, test conflict resolution with multiple client selections, validate performance with large catalogs, and verify that sync works correctly with the backend's better-auth-protected selection APIs.[4]"
+            "testStrategy": "Test synchronization with various selection patterns, verify correct application of selections to Lightroom catalog, test conflict resolution with multiple client selections, validate performance with large catalogs, and verify that sync works correctly with the backend's better-auth-protected selection APIs.[4]",
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -893,7 +908,7 @@
         "expansionPrompt": "Expand the plugin development into plugin structure, photo upload, and selection synchronization. For each subtask, detail the plugin structure, upload logic, and test cases for edge scenarios."
       },
       {
-        "id": 14,
+        "id": "14",
         "title": "Build Photographer Dashboard Frontend (Next.js)",
         "description": "Create a responsive dashboard for photographers to manage albums, clients, and track progress.",
         "details": "Use Next.js 14+ App Router, TypeScript, Tailwind CSS, and shadcn/ui. Implement album management UI, progress dashboard, and client invitation flows. Integrate with backend API via React Query v5, ensuring that API calls are compatible with better-auth's session-based authentication model (for example, relying on secure cookies and server-side session checks instead of manual Bearer tokens in headers).",
@@ -911,7 +926,8 @@
             "dependencies": [],
             "details": "Develop reusable components for album list view, album detail view, and album creation/editing forms. Implement filtering and sorting functionality. Use shadcn/ui components for consistent design. Create album card components with thumbnail previews, status indicators, and action buttons. Implement client-side validation using zod. Ensure that album CRUD operations are wired to backend endpoints that rely on better-auth sessions, and surface appropriate UI states when the user is not authenticated or their session expires.[5]",
             "status": "pending",
-            "testStrategy": "Unit tests for component rendering and state management. Integration tests for form submissions and validation. Accessibility testing for all components, plus tests that verify correct handling of session-expired scenarios and redirects when using better-auth-secured APIs.[5]"
+            "testStrategy": "Unit tests for component rendering and state management. Integration tests for form submissions and validation. Accessibility testing for all components, plus tests that verify correct handling of session-expired scenarios and redirects when using better-auth-secured APIs.[5]",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -922,7 +938,8 @@
             ],
             "details": "Implement charts and visualizations using a library like Chart.js or Recharts. Create components for displaying recent activity, pending tasks, and completion rates. Design widgets for quick stats (total albums, active clients, etc.). Implement filtering by date ranges and status. Ensure all visualizations are responsive and accessible. Fetch all dashboard data from endpoints that leverage better-auth sessions for authentication, and ensure client-side data fetching gracefully handles unauthenticated or expired-session responses.[5]",
             "status": "pending",
-            "testStrategy": "Unit tests for dashboard components and data transformations. Integration tests for dashboard filters and interactions. Performance testing for data-heavy visualizations, plus tests that verify dashboard queries behave correctly under different better-auth session states (valid, missing, expired).[5]"
+            "testStrategy": "Unit tests for dashboard components and data transformations. Integration tests for dashboard filters and interactions. Performance testing for data-heavy visualizations, plus tests that verify dashboard queries behave correctly under different better-auth session states (valid, missing, expired).[5]",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -933,7 +950,8 @@
             ],
             "details": "Implement invitation form with email input and customizable message. Create preview of invitation email. Develop UI for tracking invitation status (sent, opened, accepted). Build components for managing existing invitations (resend, cancel). Implement copy-to-clipboard functionality for invitation links. Create confirmation dialogs for critical actions. All invitation management actions should call backend endpoints that require an authenticated better-auth session to ensure only authorized photographers can send or modify invitations.[5]",
             "status": "pending",
-            "testStrategy": "Unit tests for invitation form validation. Integration tests for the complete invitation flow. E2E tests for invitation acceptance process. Test edge cases like expired invitations and email validation, and verify that invitation APIs correctly reject unauthenticated access under the better-auth session model.[5]"
+            "testStrategy": "Unit tests for invitation form validation. Integration tests for the complete invitation flow. E2E tests for invitation acceptance process. Test edge cases like expired invitations and email validation, and verify that invitation APIs correctly reject unauthenticated access under the better-auth session model.[5]",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -946,7 +964,8 @@
             ],
             "details": "Create custom hooks for all API endpoints using React Query v5. Implement optimistic updates for better UX. Set up global error handling and retry logic. Configure caching strategies for different data types. Create TypeScript interfaces for all API responses. Implement loading and error states for all data-dependent components. Add prefetching for critical data. Ensure that the React Query layer works seamlessly with better-auth's session-based authentication, avoiding manual Bearer token headers and instead relying on cookie-based sessions and server-side session checks, with appropriate handling of unauthorized responses.[5]",
             "status": "pending",
-            "testStrategy": "Unit tests for custom hooks. Mock API responses for testing error states and loading scenarios. Integration tests for data fetching and mutations. Test offline behavior and recovery, as well as behavior when better-auth sessions are missing or expired (including redirect and revalidation flows).[5]"
+            "testStrategy": "Unit tests for custom hooks. Mock API responses for testing error states and loading scenarios. Integration tests for data fetching and mutations. Test offline behavior and recovery, as well as behavior when better-auth sessions are missing or expired (including redirect and revalidation flows).[5]",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -960,7 +979,8 @@
             ],
             "details": "Implement responsive layouts using Tailwind CSS breakpoints. Create mobile-specific navigation components. Optimize touch interactions for mobile users. Test and fix layout issues across different screen sizes. Ensure consistent rendering in Chrome, Firefox, Safari, and Edge. Implement progressive enhancement for features with limited browser support. Optimize performance for mobile devices. Confirm that authentication-dependent UI elements respond correctly when better-auth sessions change state, including on mobile browsers where cookie handling and redirects may vary.[5]",
             "status": "pending",
-            "testStrategy": "Visual regression testing across different screen sizes and browsers. Manual testing on physical devices. Lighthouse performance audits. Accessibility testing with screen readers, plus validation that authentication-related flows (such as redirects when unauthenticated) behave consistently across supported browsers under better-auth's session model.[5]"
+            "testStrategy": "Visual regression testing across different screen sizes and browsers. Manual testing on physical devices. Lighthouse performance audits. Accessibility testing with screen readers, plus validation that authentication-related flows (such as redirects when unauthenticated) behave consistently across supported browsers under better-auth's session model.[5]",
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -968,7 +988,7 @@
         "expansionPrompt": "Expand the dashboard development into album management UI, progress dashboard, client invitation flow, API integration, and responsive design. For each subtask, detail the UI components, API integration, and test cases for edge scenarios."
       },
       {
-        "id": 15,
+        "id": "15",
         "title": "Build Client Photo Selection Interface (Next.js)",
         "description": "Develop a mobile-friendly gallery for clients to browse, select, and submit photos.",
         "details": "Use Next.js 14+ App Router, TypeScript, Tailwind CSS, and shadcn/ui. Implement gallery grid, selection toggles, submission flow, and read-only mode. Optimize for mobile and accessibility (WCAG compliance). Consume backend APIs that are now protected with better-auth sessions, ensuring client-facing pages either use public, token-based links designed to work with the new auth model or gracefully handle session-based access requirements.[5]",
@@ -986,7 +1006,8 @@
             "dependencies": [],
             "details": "Build a responsive grid component using Tailwind CSS grid/flexbox with dynamic column adjustment based on screen size. Implement lazy loading using Intersection Observer API for performance optimization. Add pagination controls with shadcn/ui components. Support different photo aspect ratios while maintaining grid integrity. Include skeleton loaders for improved UX during loading states. Ensure that data fetching for the gallery grid is compatible with better-auth-protected or public selection endpoints, depending on the chosen client access model.[5]",
             "status": "pending",
-            "testStrategy": "Unit tests for grid layout component, visual regression tests across breakpoints, performance testing for lazy loading implementation, and E2E checks that gallery data loads correctly under the updated backend authentication scheme.[5]"
+            "testStrategy": "Unit tests for grid layout component, visual regression tests across breakpoints, performance testing for lazy loading implementation, and E2E checks that gallery data loads correctly under the updated backend authentication scheme.[5]",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -997,7 +1018,8 @@
             ],
             "details": "Create a selection context using React Context API to manage selected photo state. Implement toggle functionality with optimistic UI updates. Add visual indicators for selected photos (checkmarks, borders, etc.). Display running count of selected photos with configurable maximum limits. Handle edge cases like deselection warnings if approaching minimum required selections. Ensure keyboard accessibility for selection actions. When persisting selection changes to the backend, use endpoints that work with better-auth's model, avoiding assumptions about manual JWT or Bearer headers.[5]",
             "status": "pending",
-            "testStrategy": "Unit tests for selection logic, integration tests for context state management, accessibility testing for keyboard navigation, and tests that verify selection updates succeed or fail consistently under the backend's better-auth-protected APIs.[5]"
+            "testStrategy": "Unit tests for selection logic, integration tests for context state management, accessibility testing for keyboard navigation, and tests that verify selection updates succeed or fail consistently under the backend's better-auth-protected APIs.[5]",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -1008,7 +1030,8 @@
             ],
             "details": "Implement a multi-step submission wizard using shadcn/ui Dialog components. Create validation logic to ensure minimum/maximum selection requirements are met. Add confirmation modal with selected photo preview. Implement submission API integration with loading states and error handling. Store submission state for recovery in case of interruption. Add success confirmation with option to download selection as PDF summary. Ensure submission requests are compatible with better-auth's authentication model, whether via session-aware endpoints or secure public submission tokens, and remove any reliance on manual JWT parsing.[5]",
             "status": "pending",
-            "testStrategy": "E2E tests for complete submission flow, unit tests for validation logic, error state testing for API failures, and verification that submission endpoints behave correctly under better-auth session or token-based access models.[5]"
+            "testStrategy": "E2E tests for complete submission flow, unit tests for validation logic, error state testing for API failures, and verification that submission endpoints behave correctly under better-auth session or token-based access models.[5]",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -1020,7 +1043,8 @@
             ],
             "details": "Develop conditional rendering logic based on album status (OPEN vs CLOSED). Create read-only variants of gallery components that visually indicate selected status without toggle functionality. Implement informational banners explaining the read-only state (deadline passed, selections finalized, etc.). Add timestamp displays for submission date and photographer approval status. Ensure all interactive elements are properly disabled while maintaining visual consistency. Confirm that read-only views correctly handle access through better-auth-secured or public endpoints, and that no assumptions are made about client-side JWT decoding.[5]",
             "status": "pending",
-            "testStrategy": "Integration tests for state transitions between editable and read-only modes, visual regression tests for disabled UI components, and tests that confirm read-only views render correctly for users accessing via the updated authentication scheme.[5]"
+            "testStrategy": "Integration tests for state transitions between editable and read-only modes, visual regression tests for disabled UI components, and tests that confirm read-only views render correctly for users accessing via the updated authentication scheme.[5]",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -1034,7 +1058,8 @@
             ],
             "details": "Implement touch-friendly hit areas for selection toggles (minimum 44x44px per WCAG). Add swipe gestures for gallery navigation on mobile. Ensure proper contrast ratios for all text and UI elements (minimum 4.5:1 for normal text, 3:1 for large text). Add screen reader announcements for dynamic content changes. Implement keyboard focus management with visible focus indicators. Test and optimize for iOS Safari and Android Chrome. Add responsive layout adjustments for small screens with appropriate breakpoints. Verify that mobile and assistive-technology users can complete flows that interact with better-auth-protected endpoints, including any redirects or session refresh behavior.[5]",
             "status": "pending",
-            "testStrategy": "Accessibility audit using tools like axe-core, manual testing with screen readers (NVDA, VoiceOver), device testing across iOS/Android, keyboard navigation testing, and validation that all flows remain usable when authentication is enforced via better-auth sessions.[5]"
+            "testStrategy": "Accessibility audit using tools like axe-core, manual testing with screen readers (NVDA, VoiceOver), device testing across iOS/Android, keyboard navigation testing, and validation that all flows remain usable when authentication is enforced via better-auth sessions.[5]",
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -1044,14 +1069,12 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-12-04T00:47:10.062Z",
+      "lastModified": "2026-02-03T04:21:19.147Z",
       "taskCount": 15,
-      "completedCount": 3,
+      "completedCount": 4,
       "tags": [
         "master"
-      ],
-      "created": "2025-12-04T00:47:17.708Z",
-      "description": "Tasks for master context"
+      ]
     }
   }
 }

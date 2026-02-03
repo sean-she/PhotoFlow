@@ -11,6 +11,7 @@
 export { auth } from "./auth";
 export * from "./guards";
 export * from "./api-token";
+export * from "./client-token";
 
 // Client-safe exports (use in Client Components)
 // Import directly: import { signUp, signIn } from "@/lib/auth/auth-client"

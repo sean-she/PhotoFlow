@@ -42,13 +42,23 @@ export class PerformanceTimer {
       operation: this.operation,
     };
 
-    // Log based on duration (warn if slow)
-    if (duration > 1000) {
-      this.logger.warn(logContext, `Slow operation: ${this.operation}`);
-    } else if (duration > 500) {
-      this.logger.info(logContext, `Operation completed: ${this.operation}`);
-    } else {
-      this.logger.debug(logContext, `Operation completed: ${this.operation}`);
+    // Safe logging - catch any errors from logger (e.g., worker thread issues)
+    try {
+      // Log based on duration (warn if slow)
+      if (duration > 1000) {
+        this.logger.warn(logContext, `Slow operation: ${this.operation}`);
+      } else if (duration > 500) {
+        this.logger.info(logContext, `Operation completed: ${this.operation}`);
+      } else {
+        this.logger.debug(logContext, `Operation completed: ${this.operation}`);
+      }
+    } catch (error) {
+      // Fallback to console if logger fails (e.g., worker thread issues)
+      const level = duration > 1000 ? 'warn' : duration > 500 ? 'info' : 'debug';
+      console[level === 'warn' ? 'warn' : level === 'error' ? 'error' : 'log'](
+        `[${level.toUpperCase()}] ${this.operation} (${Math.round(duration)}ms)`,
+        logContext
+      );
     }
 
     return duration;
