@@ -95,6 +95,38 @@ The script will output:
 
 ---
 
+## Upload Confirmation Endpoint Test
+
+Test script for verifying the end-to-end Lightroom upload flow:
+presigned URL generation → direct-to-R2 PUT upload → upload confirmation via `/api/photos/confirm-upload`.
+
+### Running the Test
+
+```bash
+npm run test:confirm-upload
+```
+
+Or directly with tsx:
+
+```bash
+tsx scripts/test-confirm-upload.ts
+```
+
+### What It Tests
+
+1. **Confirm Before Upload Fails** - Calling confirm-upload before the object exists in R2 should error
+2. **End-to-End Confirm Upload** - Presign → PUT upload via presigned URL → confirm-upload succeeds and returns expected fields (storageKey, cdnUrl, metadata, EXIF)
+
+### Notes
+
+- Requires a running Next.js server (default `BASE_URL` is `http://localhost:3000`)
+- By default, creates a temporary user/photographer/album and generates an API token for the test run (self-contained)
+- Optional overrides: set `API_TOKEN` and `ALBUM_ID` to test against existing data
+- Requires working R2 credentials because the script uploads to R2 via the presigned URL
+- Optional cleanup: set `CLEANUP=true` to best-effort delete the uploaded object
+
+---
+
 ## R2 CDN URL Generation Test
 
 Test script for verifying CDN URL generation, including public URLs, signed URLs, image transformations, and bulk generation.
@@ -802,6 +834,37 @@ npm run cleanup:test-data
 - Deletes data in the correct order to respect foreign key constraints
 - Safe to run multiple times (idempotent)
 - Only deletes test data (identified by "test-" in email/name patterns)
+
+---
+
+## Presigned URL API Test
+
+Test script for verifying the `POST /api/photos/presigned-url` route handler (direct-to-R2 upload presigned URL generation).
+
+### Running the Test
+
+```bash
+npm run test:presigned-url
+```
+
+Or directly with tsx:
+
+```bash
+tsx scripts/test-presigned-url.ts
+```
+
+### What It Tests
+
+1. **Success path** - Creates test data + API token and verifies response shape includes `presignedUrl`, `photoId`, `storageKey`, `expiresAt`
+2. **Missing auth** - Ensures missing `Authorization` header returns `401`
+3. **Ownership check** - Ensures wrong photographer token returns `403`
+4. **Validation** - Ensures oversized upload (>100MB) returns `422`
+
+### Requirements / Notes
+
+- Requires a running Next.js server (default `http://localhost:3000`). Override with:
+  - `TEST_BASE_URL="http://localhost:3000"`
+- Requires valid R2 env vars (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`) because the route generates an R2-signed PUT URL.
 
 ---
 

@@ -24,6 +24,8 @@
     "test:logging": "tsx scripts/test-logging.ts",
     "test:client-tokens": "tsx scripts/test-client-tokens.ts",
     "test:client-route": "tsx scripts/test-client-route-manual.ts",
+    "test:presigned-url": "tsx scripts/test-presigned-url.ts",
+    "test:confirm-upload": "tsx scripts/test-confirm-upload.ts",
     "cleanup:test-data": "tsx scripts/cleanup-test-data.ts"
   },
   "prisma": {
