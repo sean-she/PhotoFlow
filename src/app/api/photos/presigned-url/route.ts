@@ -20,18 +20,7 @@ import { getR2Client, getR2Config } from "@/lib/storage/r2-config";
 import prisma from "@/lib/prisma";
 import { NotFoundError } from "@/lib/errors/not-found";
 import { AuthorizationError } from "@/lib/errors/authentication";
-import { randomBytes } from "node:crypto";
-
-/**
- * Generate a CUID2-like ID for photos
- * Uses timestamp + random bytes to ensure uniqueness
- * Format: c + timestamp (base36) + random (hex)
- */
-function generatePhotoId(): string {
-  const timestamp = Date.now().toString(36);
-  const random = randomBytes(8).toString("hex");
-  return `c${timestamp}${random}`;
-}
+import { createId } from "@paralleldrive/cuid2";
 
 /**
  * POST handler for presigned URL generation
@@ -66,8 +55,8 @@ const postHandler = async (
     throw new AuthorizationError("Album does not belong to this photographer");
   }
 
-  // Generate unique photo ID (CUID2-like format)
-  const photoId = generatePhotoId();
+  // Generate unique photo ID using CUID2
+  const photoId = createId();
 
   // Generate storage key using path utilities
   const storageKey = generatePhotoPath({

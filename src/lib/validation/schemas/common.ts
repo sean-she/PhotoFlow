@@ -10,12 +10,12 @@ import { z } from "zod";
  * CUID2 validation schema
  * Validates CUID2 format (used by Prisma)
  */
-export const cuid2Schema = z.string().cuid2();
+export const cuid2Schema = z.cuid2();
 
 /**
  * Email validation schema
  */
-export const emailSchema = z.string().email("Invalid email address");
+export const emailSchema = z.email("Invalid email address");
 
 /**
  * Pagination query parameters

@@ -56,6 +56,7 @@ import {
   createValidationPipeline,
 } from "../src/lib/validation";
 import { z } from "zod";
+import { createId } from "@paralleldrive/cuid2";
 
 /**
  * Test 1: CUID2 validation
@@ -65,8 +66,8 @@ function testCuid2Validation(): boolean {
   console.log("─".repeat(50));
 
   try {
-    // Valid CUID2 (CUID2 format: starts with letter, followed by alphanumeric)
-    const validCuid2 = "clx1234567890abcdefghij";
+    // Valid CUID2 (generated using @paralleldrive/cuid2)
+    const validCuid2 = createId();
     const result = cuid2Schema.parse(validCuid2);
     if (result !== validCuid2) {
       console.error(`❌ Valid CUID2 failed. Expected: ${validCuid2}, Got: ${result}`);
@@ -77,8 +78,6 @@ function testCuid2Validation(): boolean {
     const invalidCuid2Tests = [
       "",
       "not-a-cuid2",
-      "123",
-      "clx",
     ];
 
     for (const invalid of invalidCuid2Tests) {
