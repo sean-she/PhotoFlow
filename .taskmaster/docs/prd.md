@@ -169,19 +169,25 @@ Handles creation, configuration, and lifecycle management of photo albums.
 - **Behavior**: Enforce business rules, prevent invalid state transitions, log changes. When closing an album (setting status to CLOSED): identify clients with hasSubmitted=false, auto-submit their current selections (even if empty/zero selections), update hasSubmitted=true and set submittedAt timestamp, change album status to CLOSED, notify photographer with list of clients who were unsubmitted, notify each auto-submitted client of their submission. When reopening a CLOSED album, set album status to OPEN. After reopening, photographer must use Client Resubmission Control feature to allow specific clients to resubmit. Clients not allowed to resubmit can view photos in read-only mode but cannot modify selections.
 
 ### Capability: Photo Upload & Processing
-Handles photo uploads from Lightroom plugin, image processing, and storage management.
+Handles photo uploads from Lightroom plugin using direct-to-storage pattern and on-demand image transformations via Cloudflare Images.
 
-#### Feature: Photo Upload
-- **Description**: Accept photo uploads from Lightroom plugin with multiple resolutions
-- **Inputs**: Album ID, photo files (thumbnail, preview, original), metadata
-- **Outputs**: Photo records with storage URLs, upload confirmation
-- **Behavior**: Validate file types, process images, upload to storage, create database records
+#### Feature: Presigned Upload URL Generation
+- **Description**: Generate presigned R2 URLs for direct client-to-storage uploads, bypassing serverless function limitations
+- **Inputs**: Album ID, filename, content type, photographer authentication (via API token)
+- **Outputs**: Presigned PUT URL, photo ID, expiration time
+- **Behavior**: Validate photographer permissions, validate file type/size constraints, generate unique storage key, create presigned R2 PUT URL (1 hour expiration), return URL to Lightroom plugin for direct upload. This avoids Vercel serverless timeout limits (10-60s) by uploading directly to R2.
 
-#### Feature: Image Processing
-- **Description**: Generate optimized thumbnails (300px) and previews (1200px) from originals
-- **Inputs**: Original image file, target dimensions
-- **Outputs**: Processed image files (JPEG/WebP)
-- **Behavior**: Resize images, optimize compression, convert formats, maintain aspect ratio
+#### Feature: Upload Confirmation
+- **Description**: Confirm successful upload and create database record after direct-to-R2 upload completes
+- **Inputs**: Photo ID, album ID, file metadata (size, dimensions), photographer authentication
+- **Outputs**: Photo record with storage key, confirmation status
+- **Behavior**: Verify file exists in R2, extract/store EXIF metadata, create Photo database record with storage key, return confirmation. This is called by Lightroom plugin after successful direct upload.
+
+#### Feature: On-Demand Image Transformation
+- **Description**: Generate optimized thumbnails (300px) and previews (1200px) on-demand using Cloudflare Images transformations
+- **Inputs**: Original image storage key, target dimensions, format preferences
+- **Outputs**: Cloudflare Images transformation URLs (not processed files)
+- **Behavior**: Generate Cloudflare Images transformation URLs with parameters (width, height, fit, format, quality). Cloudflare transforms images on-demand at the edge, caching results globally. No server-side processing required. Free tier includes 5,000 unique transformations/month; $0.50 per 1,000 thereafter.
 
 #### Feature: Delta Sync Detection
 - **Description**: Identify which photos are new or changed since last sync
@@ -286,10 +292,10 @@ Manages photo storage in cloud object storage with lifecycle policies.
 - **Behavior**: Evaluate retention policies, schedule archival, optimize storage tiers
 
 #### Feature: CDN Integration
-- **Description**: Serve photos via global CDN for fast delivery
-- **Inputs**: Storage URLs, geographic location
-- **Outputs**: CDN-optimized URLs
-- **Behavior**: Generate CDN URLs, configure caching, handle edge delivery
+- **Description**: Serve photos via Cloudflare's global CDN with on-demand image transformations
+- **Inputs**: R2 storage key, transformation parameters (width, height, format, quality)
+- **Outputs**: Cloudflare Images transformation URLs, cached transformed images
+- **Behavior**: Generate Cloudflare Images transformation URLs that include R2 origin. Cloudflare automatically fetches from R2, applies transformations at the edge, caches results globally. Supports WebP/AVIF format auto-negotiation, quality optimization, and responsive sizing.
 
 </functional-decomposition>
 
@@ -400,19 +406,22 @@ photoflow/
 
 ### Module: photos
 - **Maps to capability**: Photo Upload & Processing
-- **Responsibility**: Handle photo uploads, processing, and storage
+- **Responsibility**: Handle presigned URL generation, upload confirmation, and on-demand image transformation URLs
 - **File structure**:
   ```
   photos/
-  ├── upload.ts                # Photo upload handler
-  ├── processing.ts            # Image processing
-  ├── delta-sync.ts             # Delta sync detection
+  ├── presigned-url.ts         # Presigned R2 URL generation for direct uploads
+  ├── confirm-upload.ts        # Upload confirmation and database record creation
+  ├── transform-url.ts         # Cloudflare Images transformation URL generation
+  ├── delta-sync.ts            # Delta sync detection
   ├── delivery.ts              # Final photo delivery
   └── index.ts                 # Public exports
   ```
 - **Exports**:
-  - `uploadPhotos()` - Upload photos from plugin
-  - `processImage()` - Generate thumbnails and previews
+  - `generatePresignedUploadUrl()` - Generate presigned R2 PUT URL for direct upload
+  - `confirmUpload()` - Confirm upload completion and create database record
+  - `generateThumbnailUrl()` - Generate Cloudflare Images thumbnail URL (300px)
+  - `generatePreviewUrl()` - Generate Cloudflare Images preview URL (1200px)
   - `getSyncStatus()` - Get delta sync status
   - `uploadFinals()` - Upload final edited photos
 
@@ -470,18 +479,26 @@ photoflow/
 
 ### Module: storage
 - **Maps to capability**: File Storage Management
-- **Responsibility**: Manage cloud storage and CDN integration
+- **Responsibility**: Manage cloud storage, presigned URLs, CDN integration, and Cloudflare Images transformations
 - **File structure**:
   ```
   storage/
-  ├── upload.ts                # File upload to storage
+  ├── r2-config.ts             # R2 client configuration
+  ├── presigned.ts             # Presigned URL generation (upload and download)
+  ├── upload.ts                # Server-side file upload (for non-photo files)
+  ├── download.ts              # File download utilities
   ├── lifecycle.ts             # Lifecycle management
-  ├── cdn.ts                   # CDN integration
+  ├── cdn.ts                   # CDN URL generation
+  ├── cloudflare-images.ts     # Cloudflare Images transformation URL generation
   └── index.ts                 # Public exports
   ```
 - **Exports**:
-  - `uploadFile()` - Upload file to storage
-  - `getFileUrl()` - Get CDN-optimized URL
+  - `getR2Client()` - Get configured R2 S3 client
+  - `generatePresignedPutUrl()` - Generate presigned PUT URL for direct uploads
+  - `generatePresignedGetUrl()` - Generate presigned GET URL for downloads
+  - `uploadFile()` - Server-side file upload
+  - `generateCdnUrl()` - Get public CDN URL for R2 file
+  - `generateTransformUrl()` - Generate Cloudflare Images transformation URL
   - `manageLifecycle()` - Apply lifecycle policies
 
 ### Module: db
@@ -602,7 +619,7 @@ Phase ordering follows topological sort of dependency graph.
 ---
 
 ### Phase 1: Data & Infrastructure Layer
-**Goal**: Implement authentication and photo processing infrastructure
+**Goal**: Implement authentication and photo upload infrastructure
 
 **Entry Criteria**: Phase 0 complete (db, storage, utils available)
 
@@ -611,13 +628,13 @@ Phase ordering follows topological sort of dependency graph.
   - Acceptance criteria: Better-auth configured, photographer login/logout working via better-auth sessions, Photographer table created and linked to User, client token generation
   - Test strategy: Unit tests for auth functions, integration tests for login flow, tests for User-Photographer linking
 
-- [ ] Photo processing module (depends on: [db, storage, utils])
-  - Acceptance criteria: Image resizing (300px, 1200px), format conversion (JPEG/WebP), upload to storage
-  - Test strategy: Unit tests for image processing, integration tests for upload pipeline
+- [ ] Photo upload module (depends on: [db, storage, utils])
+  - Acceptance criteria: Presigned R2 URL generation for direct uploads, upload confirmation endpoint, Cloudflare Images transformation URL generation for thumbnails (300px) and previews (1200px)
+  - Test strategy: Unit tests for presigned URL generation, integration tests for direct upload flow, tests for Cloudflare Images URL generation
 
-**Exit Criteria**: Photographers can authenticate via better-auth, Photographer records linked to User records, photos can be processed and stored
+**Exit Criteria**: Photographers can authenticate via better-auth, Photographer records linked to User records, photos can be uploaded directly to R2 and transformed on-demand via Cloudflare Images
 
-**Delivers**: Core infrastructure for authentication (better-auth) and photographer business data management (Photographer model) and photo handling
+**Delivers**: Core infrastructure for authentication (better-auth), photographer business data management (Photographer model), and direct-to-storage photo uploads with on-demand transformations
 
 ---
 
@@ -800,20 +817,26 @@ This section guides the AI when generating tests during the RED phase of TDD.
 
 ### Photo Upload & Processing Module
 **Happy path**:
-- Upload photos, process images, store in cloud
-- Expected: Photos uploaded, thumbnails/previews generated, URLs returned
+- Request presigned URL, upload directly to R2, confirm upload
+- Expected: Presigned URL generated, file uploaded to R2, database record created
+- Generate Cloudflare Images transformation URLs for thumbnails/previews
+- Expected: Valid transformation URLs returned, images transformed on-demand
 
 **Edge cases**:
-- Large files (>10MB), unsupported formats, corrupted images
-- Expected: Validation errors, format conversion, error handling
+- Large files (>100MB), unsupported formats, expired presigned URLs
+- Expected: Validation errors at presigned URL generation, retry with new URL
+- Cloudflare Images transformation limits exceeded (5,000 free/month)
+- Expected: Graceful degradation, fallback to original image URL
 
 **Error cases**:
-- Storage service failures, image processing errors
-- Expected: Retry logic, error logging, user notification
+- R2 upload failures, presigned URL generation errors, Cloudflare Images service issues
+- Expected: Retry logic, error logging, user notification, fallback URLs
 
 **Integration points**:
 - Delta sync detects new photos
-- Expected: Only new/changed photos uploaded
+- Expected: Only new/changed photos get presigned URLs and upload
+- Cloudflare Images caches transformed images at edge
+- Expected: Subsequent requests served from cache, fast delivery globally
 
 ### Client Selection Module
 **Happy path**:
@@ -979,10 +1002,11 @@ model Photo {
   albumId      String
   album        Album    @relation(fields: [albumId], references: [id])
   filename     String
-  thumbnailUrl String
-  previewUrl   String
-  originalUrl  String?
-  metadata     Json?
+  storageKey   String   @unique  // R2 storage key (thumbnails/previews generated on-demand via Cloudflare Images)
+  width        Int?              // Original image width (for aspect ratio calculations)
+  height       Int?              // Original image height
+  size         Int?              // File size in bytes
+  metadata     Json?             // EXIF and other metadata
   uploadedAt   DateTime @default(now())
   selections   PhotoSelection[]
 }
@@ -1028,11 +1052,11 @@ enum AlbumStatus {
 - **Language**: TypeScript
 - **ORM**: Prisma
 - **Database**: PostgreSQL
-- **Storage**: Cloudflare R2
-- **Image Processing**: Sharp
+- **Storage**: Cloudflare R2 (S3-compatible object storage)
+- **Image Transformations**: Cloudflare Images (on-demand transformations for R2-stored images, no server-side processing)
 - **Authentication**: better-auth with Prisma adapter, session cookies (Google OAuth planned for future version via better-auth OAuth providers)
-- **Scheduled Jobs**: Background job processing for deadline auto-submission (e.g., node-cron, Bull, or Vercel Cron)
-- **File Uploads**: Web-standard FormData API with streaming support
+- **Scheduled Jobs**: Background job processing for deadline auto-submission (e.g., Vercel Cron)
+- **File Uploads**: Direct-to-R2 uploads via presigned URLs (bypasses serverless function timeout limits)
 
 ### Frontend
 - **Framework**: Next.js 14+ (App Router)
@@ -1056,15 +1080,15 @@ enum AlbumStatus {
 - **Trade-offs**: Slightly heavier than raw SQL, learning curve
 - **Alternatives considered**: TypeORM (less type-safe), raw SQL (more verbose)
 
-**Decision: Cloudflare R2**
-- **Rationale**: S3-compatible API, global CDN, cost-effective storage
-- **Trade-offs**: Vendor lock-in, less mature than AWS S3
-- **Alternatives considered**: AWS S3 (more expensive), Google Cloud Storage (more complex)
+**Decision: Cloudflare R2 with Direct-to-Storage Uploads**
+- **Rationale**: S3-compatible API, global CDN, cost-effective storage. Direct uploads via presigned URLs bypass Vercel serverless function timeout limits (10-60s), enabling large file uploads without server bottlenecks.
+- **Trade-offs**: Slightly more complex client-side upload logic, requires presigned URL generation endpoint
+- **Alternatives considered**: AWS S3 (more expensive), server-side multipart uploads (limited by serverless timeouts)
 
-**Decision: Sharp for Image Processing**
-- **Rationale**: Fast, efficient, supports WebP, good TypeScript support
-- **Trade-offs**: Native dependency, larger bundle size
-- **Alternatives considered**: Jimp (slower), ImageMagick (more complex)
+**Decision: Cloudflare Images for On-Demand Transformations**
+- **Rationale**: No server-side image processing required, images stored in R2 are transformed on-demand at Cloudflare's edge, automatic global caching, no serverless timeout constraints. Free tier includes 5,000 unique transformations/month; $0.50 per 1,000 thereafter.
+- **Trade-offs**: Dependency on Cloudflare Images service, transformation URL format tied to Cloudflare API
+- **Alternatives considered**: Sharp server-side processing (limited by serverless timeouts and memory), storing pre-generated thumbnails (increased storage costs, upload complexity)
 
 </architecture>
 
@@ -1089,10 +1113,10 @@ Categories:
 - **Fallback**: Manual upload workflow as temporary solution, focus on web interface first
 
 **Risk**: Large file upload handling and performance
-- **Impact**: High - Photo uploads are core functionality
-- **Likelihood**: Medium
-- **Mitigation**: Chunked upload implementation, progress tracking, background processing, CDN optimization
-- **Fallback**: Reduce image quality temporarily, implement queuing system
+- **Impact**: Medium - Photo uploads are core functionality
+- **Likelihood**: Low (mitigated by architecture)
+- **Mitigation**: Direct-to-R2 uploads via presigned URLs bypass serverless timeout limits entirely. Progress tracking in Lightroom plugin.
+- **Fallback**: Reduce file size limits, implement client-side compression
 
 **Risk**: Database performance with large photo counts (100,000+ photos)
 - **Impact**: Medium - Scalability concern
@@ -1100,11 +1124,11 @@ Categories:
 - **Mitigation**: Query optimization, proper indexing, pagination, database connection pooling
 - **Fallback**: Implement caching layer, consider read replicas
 
-**Risk**: Image processing performance bottlenecks
-- **Impact**: Medium - Slow uploads affect user experience
-- **Likelihood**: Medium
-- **Mitigation**: Background job processing, parallel processing, optimized Sharp settings
-- **Fallback**: Reduce image quality, implement queuing system
+**Risk**: Cloudflare Images transformation limits and costs
+- **Impact**: Low - Free tier generous for initial usage
+- **Likelihood**: Medium (at scale)
+- **Mitigation**: 5,000 free unique transformations/month covers initial usage. Monitor usage, implement transformation URL caching, limit unique transformation variants (e.g., only 2-3 sizes).
+- **Fallback**: Upgrade to paid Cloudflare Images plan ($0.50 per 1,000 transformations), implement server-side Sharp processing for high-volume scenarios
 
 ## Dependency Risks
 
@@ -1163,21 +1187,27 @@ Categories:
 - Prisma Documentation: https://www.prisma.io/docs
 - Next.js App Router Documentation: https://nextjs.org/docs
 - Cloudflare R2 Documentation: https://developers.cloudflare.com/r2
-- Sharp Image Processing: https://sharp.pixelplumbing.com
+- Cloudflare Images Documentation: https://developers.cloudflare.com/images
+- Cloudflare Images Pricing: https://developers.cloudflare.com/images/pricing/
+- AWS S3 Presigned URLs (R2-compatible): https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html
 - shadcn/ui Components: https://ui.shadcn.com
 
 ## Glossary
 
 - **Album**: A collection of photos shared with clients for review
 - **Access Token**: Unique, secure token granting client access to an album
+- **Presigned URL**: Time-limited, pre-authenticated URL allowing direct file upload/download to R2 without server intermediary
+- **Direct-to-Storage Upload**: Upload pattern where clients upload directly to R2 via presigned URLs, bypassing serverless function limits
+- **On-Demand Transformation**: Image resizing/optimization performed by Cloudflare Images when the transformation URL is requested, not during upload
 - **Delta Sync**: Process of detecting and uploading only new/changed photos
 - **Selection**: A client's choice to include a photo in their final set
 - **Submission**: Final locking of client selections, preventing further changes
 - **Auto-Submission**: Automatic submission of unsubmitted clients when album deadline passes
 - **Resubmission**: Process of allowing a client who has already submitted to modify and resubmit their selections
-- **Review Photos**: Thumbnails and previews shared for client selection
+- **Review Photos**: Thumbnails and previews shared for client selection (generated on-demand via Cloudflare Images)
 - **Final Photos**: High-resolution edited photos delivered after selection
 - **Lightroom Collection**: A grouping of photos within Lightroom Classic
+- **Cloudflare Images**: Cloudflare's image transformation service that resizes/optimizes images stored in R2 on-demand at the edge
 
 ## Open Questions
 

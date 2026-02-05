@@ -43,11 +43,11 @@
 		},
 		{
 			"taskId": 5,
-			"taskTitle": "Build Photo Upload and Processing Pipeline",
+			"taskTitle": "Build Photo Upload Pipeline with Direct-to-R2 and Cloudflare Images",
 			"complexityScore": 7,
-			"recommendedSubtasks": 3,
-			"expansionPrompt": "Expand the pipeline into multipart upload handling, image processing, and storage/database integration. For each subtask, specify the libraries to use (e.g., Multer, Sharp), the processing steps, and the test cases for file validation and error recovery.",
-			"reasoning": "Building a photo upload and processing pipeline involves handling multipart uploads, image processing, and storage integration. The pipeline must be robust to handle various file types, sizes, and potential errors. The complexity is moderate to high due to the need for efficient processing, error handling, and integration with external storage. The recommended subtasks cover the core components of the pipeline."
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Expand the pipeline into presigned URL generation, upload confirmation, Cloudflare Images integration, delta sync detection, and Photo model updates. For each subtask, detail the API endpoints, authentication, and test cases for direct-to-storage upload patterns.",
+			"reasoning": "Building a direct-to-storage photo upload pipeline with presigned URLs and on-demand image transformations involves multiple architectural components. The complexity includes secure presigned URL generation with proper expiration, upload confirmation with R2 file verification, Cloudflare Images API integration for on-demand transformations, delta sync logic for efficient plugin uploads, and database schema updates. While this approach eliminates server-side image processing (Sharp), it introduces new complexities around client-to-storage patterns, URL signing, and third-party image transformation service integration. The recommended subtasks cover all critical aspects of the modern, serverless-friendly upload architecture."
 		},
 		{
 			"taskId": 6,

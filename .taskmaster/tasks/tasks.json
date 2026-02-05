@@ -358,10 +358,10 @@
       },
       {
         "id": "5",
-        "title": "Build Photo Upload and Processing Pipeline",
-        "description": "Enable photo uploads from Lightroom plugin, process images into multiple resolutions, and store in R2.",
-        "details": "Use multer v2 for multipart uploads, sharp v0.32 for image resizing (300px thumbnails, 1200px previews, WebP/JPEG conversion). Validate file types, extract metadata, and store files in R2. Create database records for each photo.",
-        "testStrategy": "Unit tests for image processing, integration tests for upload pipeline, large file and format edge cases.",
+        "title": "Build Photo Upload Pipeline with Direct-to-R2 and Cloudflare Images",
+        "description": "Enable photo uploads from Lightroom plugin using direct-to-storage pattern with presigned URLs and on-demand image transformations via Cloudflare Images.",
+        "details": "Implement presigned R2 URL generation for direct client-to-storage uploads, bypassing Vercel serverless timeout limits. Create upload confirmation endpoint to verify uploads and create database records. Integrate Cloudflare Images for on-demand thumbnail (300px) and preview (1200px) transformations. No server-side image processing (Sharp) required. Store only originals in R2. Validate file types, extract metadata, and create database records with single storageKey field.",
+        "testStrategy": "Unit tests for presigned URL generation and validation, integration tests for direct upload flow, Cloudflare Images transformation URL tests, large file upload tests, edge cases for expired presigned URLs.",
         "priority": "high",
         "dependencies": [
           "1",
@@ -372,42 +372,65 @@
         "subtasks": [
           {
             "id": 1,
-            "title": "Implement Multipart Upload Handling with Multer v2",
-            "description": "Set up the server-side infrastructure to handle multipart file uploads from the Lightroom plugin using Multer v2.",
+            "title": "Implement Presigned URL Generation API",
+            "description": "Create API endpoint to generate presigned R2 PUT URLs for direct photo uploads from Lightroom plugin.",
             "dependencies": [],
-            "details": "Create Next.js route handler in app/api/photos/upload/route.ts for handling multipart file uploads using web-standard FormData API. Use req.formData() to parse multipart data. Implement file size limits (max 100MB per file) using Next.js configuration or validation. Implement file type validation (accept only JPG, PNG, TIFF, RAW formats) using zod schemas. Use streaming for large file uploads. Create route handlers for single and batch uploads. Implement authentication using requireAuth() utility to ensure only authorized Lightroom plugins can upload. Handle errors using NextResponse.json with proper status codes.",
+            "details": "Create Next.js route handler in app/api/photos/presigned-url/route.ts that generates presigned R2 PUT URLs. Use @aws-sdk/s3-request-presigner with PutObjectCommand to create presigned URLs (1 hour expiration). Accept request body: albumId, filename, contentType, fileSize. Validate photographer authentication using requireApiToken() middleware for Lightroom plugin. Validate file type (JPG, PNG, TIFF, RAW), file size (max 100MB), and album ownership. Generate unique storage key using existing path generation utilities from lib/storage/paths.ts. Return: presignedUrl, photoId (pre-generated), storageKey, expiresAt. Create database record with status='uploading' to track pending uploads. Use existing R2 client from lib/storage/r2-config.ts. Handle errors using NextResponse.json with proper status codes.",
             "status": "pending",
-            "testStrategy": "Unit tests for file validation logic, integration tests with mock file uploads of various sizes and types, error handling tests for invalid files and authentication failures.",
+            "testStrategy": "Unit tests for presigned URL generation, validation logic tests for file types and sizes, integration tests with R2 to verify URLs work, security tests for authentication and authorization, edge cases for invalid album IDs or expired tokens.",
             "parentId": "undefined"
           },
           {
             "id": 2,
-            "title": "Develop Image Processing Pipeline with Sharp v0.32",
-            "description": "Create a robust image processing service that transforms uploaded images into multiple resolutions and formats using Sharp v0.32.",
+            "title": "Develop Upload Confirmation Endpoint",
+            "description": "Create API endpoint for Lightroom plugin to confirm successful direct upload to R2 and finalize database record.",
             "dependencies": [
               1
             ],
-            "details": "Implement an image processing service using Sharp v0.32 that generates: 300px thumbnails (maintaining aspect ratio), 1200px preview images, and both WebP and JPEG versions of each. Extract EXIF metadata from original images (capture date, camera model, exposure settings). Implement a worker queue system to handle processing asynchronously. Add error recovery for corrupted images and logging for processing metrics. Optimize for memory usage when handling large batches.",
+            "details": "Create Next.js route handler in app/api/photos/confirm-upload/route.ts. Accept request body: photoId, albumId, metadata (width, height, size, EXIF data). Validate photographer authentication using requireApiToken(). Verify file exists in R2 at expected storageKey using existing fileExists() utility from lib/storage/organization.ts. Extract and store EXIF metadata (camera make/model, capture date, ISO, aperture, etc.) if provided by plugin. Update Photo database record: set status='completed', store metadata, set uploadedAt timestamp. Use Prisma transaction to ensure atomicity. If file doesn't exist in R2, return error and keep status='uploading' for retry. Return confirmation with storage key and CDN URL. Handle errors using NextResponse.json.",
             "status": "pending",
-            "testStrategy": "Unit tests for each transformation function, integration tests with various image types and sizes, performance tests for batch processing, error handling tests for corrupted files and memory constraints.",
+            "testStrategy": "Integration tests for confirmation flow, tests for missing files in R2, EXIF metadata storage tests, database transaction tests, edge cases for duplicate confirmations or invalid photoIds.",
             "parentId": "undefined"
           },
           {
             "id": 3,
-            "title": "Integrate with R2 Storage and Database",
-            "description": "Develop the integration layer to store processed images in Cloudflare R2 and create corresponding database records.",
+            "title": "Integrate Cloudflare Images Transformation URL Generation",
+            "description": "Add Cloudflare Images integration to storage module for on-demand thumbnail and preview URL generation.",
+            "dependencies": [],
+            "details": "Create lib/storage/cloudflare-images.ts module with functions to generate Cloudflare Images transformation URLs. Add environment variables: CF_IMAGES_ACCOUNT_HASH, CF_IMAGES_ENABLED (boolean). Implement generateCloudflareImagesUrl() that takes storageKey and transformation params (width, height, fit, format, quality). URL format: Use Cloudflare Images flexible variants API or transformation URL pattern. Implement generateThumbnailUrl(storageKey) - 300px, fit=scale-down, format=webp, quality=85. Implement generatePreviewUrl(storageKey) - 1200px, fit=scale-down, format=webp, quality=90. If CF_IMAGES_ENABLED=false, fallback to direct R2 URL from existing generateCdnUrl(). Update lib/storage/index.ts to export Cloudflare Images utilities. Update lib/storage/README.md with Cloudflare Images usage documentation.",
+            "status": "pending",
+            "testStrategy": "Unit tests for URL generation with various parameters, integration tests to verify Cloudflare Images processes R2 images correctly, fallback tests when CF_IMAGES_ENABLED=false, edge cases for invalid storage keys.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Implement Delta Sync Detection for Efficient Uploads",
+            "description": "Create API endpoint to detect which photos need uploading by comparing plugin state with database state.",
             "dependencies": [
               2
             ],
-            "details": "Implement R2 storage service using Cloudflare SDK to upload processed images with appropriate content types and metadata. Create a hierarchical storage structure (client/album/resolution/filename). Generate and store public CDN URLs for each image variant. Develop database models and services to store image metadata, file locations, and processing status. Implement transaction handling to ensure database and storage consistency. Create cleanup routines for temporary files after successful processing.",
+            "details": "Create Next.js route handler in app/api/photos/delta-sync/route.ts. Accept request body: albumId, photoIdentifiers (array of {filename, captureDate, fileSize}). Validate photographer authentication using requireApiToken(). Query database for existing photos in album using Prisma. Compare plugin photo list with database photos (match by filename, captureDate, fileSize). Return: photosToUpload (not in database), photosAlreadySynced (in database with IDs). Optimize query performance using proper indexing. Handle edge cases for duplicate filenames or missing metadata. Use existing validation utilities from lib/validation. Return JSON response with delta sync results.",
             "status": "pending",
-            "testStrategy": "Integration tests with R2 mock for storage operations, database transaction tests, end-to-end tests for the complete upload-process-store pipeline, error recovery tests for failed uploads or database operations.",
+            "testStrategy": "Unit tests for comparison logic, integration tests with various photo states (new, existing, modified), performance tests with large photo lists (500+ photos), edge cases for duplicate filenames.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Update Photo Model and API Integration",
+            "description": "Update Photo database model to use single storageKey field and integrate Cloudflare Images URLs in API responses.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Update Prisma schema Photo model: remove thumbnailUrl/previewUrl/originalUrl fields, keep only storageKey field (unique). Add width, height, size fields for metadata. Generate and run Prisma migration. Update all Photo-related API endpoints to dynamically generate thumbnail/preview URLs using Cloudflare Images utilities when returning Photo data. Update gallery API responses (lib/selections/gallery.ts) to include: photo.storageKey, photo.thumbnailUrl (generated via generateThumbnailUrl()), photo.previewUrl (generated via generatePreviewUrl()). Ensure backward compatibility during migration if needed. Update TypeScript types for Photo responses.",
+            "status": "pending",
+            "testStrategy": "Schema migration tests, API response format tests, integration tests for gallery endpoints with new URL generation, tests for Photo CRUD operations with updated model.",
             "parentId": "undefined"
           }
         ],
         "complexity": 7,
-        "recommendedSubtasks": 3,
-        "expansionPrompt": "Expand the pipeline into multipart upload handling, image processing, and storage/database integration. For each subtask, specify the libraries to use (e.g., Multer, Sharp), the processing steps, and the test cases for file validation and error recovery."
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Expand the pipeline into presigned URL generation, upload confirmation, Cloudflare Images integration, delta sync detection, and Photo model updates. For each subtask, detail the API endpoints, authentication, and test cases for direct-to-storage upload patterns."
       },
       {
         "id": "6",
@@ -803,7 +826,7 @@
         "id": "12",
         "title": "Develop REST API Routes with OpenAPI Documentation",
         "description": "Expose all backend functionality via RESTful API endpoints and generate OpenAPI docs.",
-        "details": "Use Next.js 14+ App Router with TypeScript. Implement route handlers (app/api/**/route.ts) for albums, photos, selections, sync, notifications, and authentication enforcement. Use Server Actions (actions/**) for UI-driven mutations. Validate requests using zod schemas at route handler boundaries. Keep route handlers thin - delegate to core business logic modules in lib/. Use NextRequest/NextResponse for all route handlers. Integrate better-auth for authentication with secure, session-based cookies and server-side session retrieval via better-auth helpers (for example, getSession() or requireAuth()). Generate OpenAPI documentation separately if needed (e.g., using next-swagger-doc or manual documentation).",
+        "details": "Use Next.js 14+ App Router with TypeScript. Implement route handlers (app/api/**/route.ts) for albums, photos (presigned URLs, upload confirmation, delta sync), selections, sync, notifications, and authentication enforcement. Use Server Actions (actions/**) for UI-driven mutations. Validate requests using zod schemas at route handler boundaries. Keep route handlers thin - delegate to core business logic modules in lib/. Use NextRequest/NextResponse for all route handlers. Integrate better-auth for authentication with secure, session-based cookies and server-side session retrieval via better-auth helpers (for example, getSession() or requireAuth()). Photo upload uses presigned URL pattern (generate presigned URL → client uploads direct to R2 → confirm upload). Generate OpenAPI documentation separately if needed (e.g., using next-swagger-doc or manual documentation).",
         "testStrategy": "Integration tests for all endpoints, E2E tests for complete workflows, OpenAPI schema validation, and tests that verify protected routes correctly enforce better-auth sessions instead of manual token validation.[1]",
         "priority": "medium",
         "dependencies": [
@@ -879,14 +902,14 @@
           },
           {
             "id": 2,
-            "title": "Implement Photo Upload Functionality",
-            "description": "Develop the upload.lua module to handle photo selection, metadata extraction, and secure transmission to the backend API.",
+            "title": "Implement Direct-to-R2 Photo Upload with Presigned URLs",
+            "description": "Develop the upload.lua module to handle direct-to-storage photo uploads using presigned URLs from the backend API.",
             "dependencies": [
               1
             ],
-            "details": "Create upload.lua module that interfaces with Lightroom's photo selection API. Implement batch processing for multiple photo uploads with progress indicators. Extract relevant metadata (filename, capture time, dimensions, keywords). Develop api-client.lua for HTTP requests to backend upload endpoints that are protected by better-auth on the server, ensuring the plugin aligns with the server's chosen mechanism for associating uploads with authenticated users or access tokens. Handle rate limiting, connection errors, and retry logic. Implement album/collection creation and mapping between Lightroom collections and server albums. Add user feedback mechanisms for upload success/failure.[4]",
+            "details": "Create upload.lua module that interfaces with Lightroom's photo selection API. Implement three-step upload workflow: 1) Request presigned URL from backend (POST /api/photos/presigned-url with filename, contentType, fileSize, albumId), 2) Upload photo directly to R2 using presigned PUT URL (no backend processing), 3) Confirm upload (POST /api/photos/confirm-upload with photoId, metadata). Implement delta sync to detect which photos need uploading (POST /api/photos/delta-sync) before batch uploads. Extract relevant metadata (filename, capture time, dimensions, keywords, EXIF). Develop api-client.lua for HTTP requests with API token authentication (requireApiToken on backend). Handle rate limiting, connection errors, and retry logic for all three steps. Implement album/collection creation and mapping between Lightroom collections and server albums. Add user feedback mechanisms for upload success/failure with detailed progress indicators (requesting URL, uploading, confirming). Handle presigned URL expiration (1 hour) by refreshing URLs if needed. Support large batch uploads (100+ photos) with parallel presigned URL generation.[4]",
             "status": "pending",
-            "testStrategy": "Test with various photo sizes and formats, verify metadata extraction accuracy, simulate network failures to test retry logic, validate large batch uploads (100+ photos), and confirm that uploads succeed against better-auth-protected endpoints using the expected authentication flow.[4]",
+            "testStrategy": "Test with various photo sizes and formats, verify metadata extraction accuracy, test presigned URL expiration scenarios, simulate network failures at each step to test retry logic, validate large batch uploads (100+ photos), test delta sync with various photo states, and confirm direct-to-R2 uploads work with API token authentication.[4]",
             "parentId": "undefined"
           },
           {
@@ -897,9 +920,9 @@
               1,
               2
             ],
-            "details": "Implement sync.lua to query the backend API for client photo selections, using api-client.lua to call endpoints that now enforce better-auth sessions on the server side. Create data structures to map server photo IDs to Lightroom photo IDs. Develop synchronization algorithm to apply client selections as flags, colors, or virtual copies in Lightroom. Add filtering options to view only selected/rejected photos. Implement background sync with configurable intervals. Create UI components for sync status and manual sync triggering. Handle conflict resolution for multiple client selections on the same photo. Implement error handling for sync failures and data inconsistencies.[4]",
+            "details": "Implement sync.lua to query the backend API for client photo selections, using api-client.lua with API token authentication. API returns photo data with dynamically generated Cloudflare Images URLs (thumbnailUrl, previewUrl) based on single storageKey field. Create data structures to map server photo IDs to Lightroom photo IDs using filename, captureDate, and metadata matching. Develop synchronization algorithm to apply client selections as flags, colors, or virtual copies in Lightroom. Add filtering options to view only selected/rejected photos. Implement background sync with configurable intervals. Create UI components for sync status and manual sync triggering. Handle conflict resolution for multiple client selections on the same photo. Implement error handling for sync failures and data inconsistencies. Cache selection data locally to minimize API calls.[4]",
             "status": "pending",
-            "testStrategy": "Test synchronization with various selection patterns, verify correct application of selections to Lightroom catalog, test conflict resolution with multiple client selections, validate performance with large catalogs, and verify that sync works correctly with the backend's better-auth-protected selection APIs.[4]",
+            "testStrategy": "Test synchronization with various selection patterns, verify correct application of selections to Lightroom catalog, test conflict resolution with multiple client selections, validate performance with large catalogs (500+ photos), test photo ID mapping accuracy with metadata matching, and verify sync works correctly with API token authentication.[4]",
             "parentId": "undefined"
           }
         ],
