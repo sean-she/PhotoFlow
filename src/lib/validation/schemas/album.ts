@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { cuidSchema } from "./common";
+import { cuid2Schema } from "./common";
 
 /**
  * Album status enum (matches Prisma schema)
@@ -43,7 +43,7 @@ export type UpdateAlbumInput = z.infer<typeof updateAlbumSchema>;
  * Album ID parameter schema
  */
 export const albumIdSchema = z.object({
-  id: cuidSchema,
+  id: cuid2Schema,
 });
 
 export type AlbumIdInput = z.infer<typeof albumIdSchema>;
@@ -53,7 +53,7 @@ export type AlbumIdInput = z.infer<typeof albumIdSchema>;
  */
 export const albumQuerySchema = z.object({
   status: albumStatusSchema.optional(),
-  photographerId: cuidSchema.optional(),
+  photographerId: cuid2Schema.optional(),
   search: z.string().max(255).optional(),
 });
 

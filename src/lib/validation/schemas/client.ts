@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { cuidSchema, emailSchema } from "./common";
+import { cuid2Schema, emailSchema } from "./common";
 
 /**
  * Create album client schema
@@ -47,7 +47,7 @@ export type AccessTokenInput = z.infer<typeof accessTokenParamSchema>;
  * Create photo selection schema
  */
 export const createPhotoSelectionSchema = z.object({
-  photoId: cuidSchema,
+  photoId: cuid2Schema,
   notes: z.string().max(1000).optional(),
 });
 
@@ -66,7 +66,7 @@ export type UpdatePhotoSelectionInput = z.infer<typeof updatePhotoSelectionSchem
  * Batch photo selection schema
  */
 export const batchPhotoSelectionSchema = z.object({
-  photoIds: z.array(cuidSchema).min(1, "At least one photo ID is required"),
+  photoIds: z.array(cuid2Schema).min(1, "At least one photo ID is required"),
   notes: z.string().max(1000).optional(),
 });
 
@@ -76,7 +76,7 @@ export type BatchPhotoSelectionInput = z.infer<typeof batchPhotoSelectionSchema>
  * Client ID parameter schema
  */
 export const clientIdSchema = z.object({
-  clientId: cuidSchema,
+  clientId: cuid2Schema,
 });
 
 export type ClientIdInput = z.infer<typeof clientIdSchema>;

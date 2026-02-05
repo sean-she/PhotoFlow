@@ -183,7 +183,7 @@ CREATE INDEX "photographers_api_token_idx" ON "photographers"("api_token");
 ```
 
 **Fields:**
-- `id` - Photographer ID (primary key, CUID)
+- `id` - Photographer ID (primary key, CUID2)
 - `user_id` - Foreign key to `user.id` (one-to-one relationship)
 - `name` - Display name (optional, can also use `user.name`)
 - `api_token` - Hashed API token for Lightroom plugin authentication
@@ -372,7 +372,7 @@ model User {
 ### New Photographer Model
 ```prisma
 model Photographer {
-  id                String    @id @default(cuid())
+  id                String    @id @default(cuid(2))
   userId            String    @unique @map("user_id")
   name              String?
   apiToken          String?   @map("api_token")
@@ -393,7 +393,7 @@ model Photographer {
 ### Updated Album Model
 ```prisma
 model Album {
-  id            String      @id @default(cuid())
+  id            String      @id @default(cuid(2))
   title         String
   description   String?
   status        AlbumStatus @default(DRAFT)

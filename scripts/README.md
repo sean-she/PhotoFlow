@@ -433,7 +433,7 @@ tsx scripts/test-validation.ts
 ### What It Tests
 
 **Common Schemas:**
-1. **CUID Validation** - Validates CUID format used by Prisma
+1. **CUID2 Validation** - Validates CUID2 format used by Prisma
 2. **Email Validation** - Validates email addresses
 3. **Pagination Schema** - Tests pagination parameters with defaults and type coercion
 4. **Date Range Schema** - Tests date range filtering with validation

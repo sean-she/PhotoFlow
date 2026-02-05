@@ -23,7 +23,7 @@ import { AuthorizationError } from "@/lib/errors/authentication";
 import { randomBytes } from "node:crypto";
 
 /**
- * Generate a CUID-like ID for photos
+ * Generate a CUID2-like ID for photos
  * Uses timestamp + random bytes to ensure uniqueness
  * Format: c + timestamp (base36) + random (hex)
  */
@@ -66,7 +66,7 @@ const postHandler = async (
     throw new AuthorizationError("Album does not belong to this photographer");
   }
 
-  // Generate unique photo ID (CUID-like format)
+  // Generate unique photo ID (CUID2-like format)
   const photoId = generatePhotoId();
 
   // Generate storage key using path utilities

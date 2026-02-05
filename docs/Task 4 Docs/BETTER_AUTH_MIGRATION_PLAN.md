@@ -199,7 +199,7 @@ Stores email verification tokens (if enabled).
 
 ```prisma
 model Photographer {
-  id                String    @id @default(cuid())
+  id                String    @id @default(cuid(2))
   userId            String    @unique @map("user_id") // One-to-one with better-auth User
   name              String?   // Display name (can also use User.name)
   apiToken          String?   @map("api_token") // Hashed API token for Lightroom plugin
@@ -225,7 +225,7 @@ model Photographer {
 
 ```prisma
 model Album {
-  id            String      @id @default(cuid())
+  id            String      @id @default(cuid(2))
   title         String
   description   String?
   status        AlbumStatus @default(DRAFT)

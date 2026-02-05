@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { cuidSchema } from "./common";
+import { cuid2Schema } from "./common";
 
 /**
  * MIME type validation for images (including RAW formats)
@@ -87,7 +87,7 @@ export const createPhotoSchema = z.object({
   height: z.number().int().positive().optional(),
   storageKey: z.string().min(1),
   thumbnailStorageKey: z.string().optional(),
-  albumId: cuidSchema,
+  albumId: cuid2Schema,
   exifCameraMake: z.string().max(100).optional(),
   exifCameraModel: z.string().max(100).optional(),
   exifDateTimeOriginal: z.coerce.date().optional(),
@@ -113,7 +113,7 @@ export type UpdatePhotoInput = z.infer<typeof updatePhotoSchema>;
  * Photo ID parameter schema
  */
 export const photoIdSchema = z.object({
-  id: cuidSchema,
+  id: cuid2Schema,
 });
 
 export type PhotoIdInput = z.infer<typeof photoIdSchema>;
@@ -122,7 +122,7 @@ export type PhotoIdInput = z.infer<typeof photoIdSchema>;
  * Photo query parameters (for listing/filtering)
  */
 export const photoQuerySchema = z.object({
-  albumId: cuidSchema.optional(),
+  albumId: cuid2Schema.optional(),
   search: z.string().max(255).optional(),
   mimeType: imageMimeTypeSchema.optional(),
 });
@@ -134,7 +134,7 @@ export type PhotoQueryInput = z.infer<typeof photoQuerySchema>;
  * Used for requesting presigned URLs for direct photo uploads
  */
 export const presignedUrlRequestSchema = z.object({
-  albumId: cuidSchema,
+  albumId: cuid2Schema,
   filename: z.string().min(1).max(500),
   contentType: photoMimeTypeSchema,
   fileSize: z.number().int().positive().max(100 * 1024 * 1024), // Max 100MB

@@ -89,17 +89,17 @@ The album validation schema still references `userId`. Update it to use `photogr
 **Change:**
 ```typescript
 // Line 56 - Change from:
-userId: cuidSchema.optional(),
+userId: cuid2Schema.optional(),
 
 // To:
-photographerId: cuidSchema.optional(),
+photographerId: cuid2Schema.optional(),
 ```
 
 **Full updated schema:**
 ```typescript
 export const albumQuerySchema = z.object({
   status: albumStatusSchema.optional(),
-  photographerId: cuidSchema.optional(), // Changed from userId
+  photographerId: cuid2Schema.optional(), // Changed from userId
   search: z.string().max(255).optional(),
 });
 ```

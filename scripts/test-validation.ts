@@ -12,7 +12,7 @@
 
 import {
   // Common schemas
-  cuidSchema,
+  cuid2Schema,
   emailSchema,
   paginationSchema,
   dateRangeSchema,
@@ -58,43 +58,43 @@ import {
 import { z } from "zod";
 
 /**
- * Test 1: CUID validation
+ * Test 1: CUID2 validation
  */
-function testCuidValidation(): boolean {
-  console.log("\n📋 Test 1: CUID Validation");
+function testCuid2Validation(): boolean {
+  console.log("\n📋 Test 1: CUID2 Validation");
   console.log("─".repeat(50));
 
   try {
-    // Valid CUID
-    const validCuid = "clx1234567890abcdefghij";
-    const result = cuidSchema.parse(validCuid);
-    if (result !== validCuid) {
-      console.error(`❌ Valid CUID failed. Expected: ${validCuid}, Got: ${result}`);
+    // Valid CUID2 (CUID2 format: starts with letter, followed by alphanumeric)
+    const validCuid2 = "clx1234567890abcdefghij";
+    const result = cuid2Schema.parse(validCuid2);
+    if (result !== validCuid2) {
+      console.error(`❌ Valid CUID2 failed. Expected: ${validCuid2}, Got: ${result}`);
       return false;
     }
 
-    // Invalid CUIDs
-    const invalidCuidTests = [
+    // Invalid CUID2s
+    const invalidCuid2Tests = [
       "",
-      "not-a-cuid",
+      "not-a-cuid2",
       "123",
       "clx",
     ];
 
-    for (const invalid of invalidCuidTests) {
+    for (const invalid of invalidCuid2Tests) {
       try {
-        cuidSchema.parse(invalid);
-        console.error(`❌ Invalid CUID should have failed: ${invalid}`);
+        cuid2Schema.parse(invalid);
+        console.error(`❌ Invalid CUID2 should have failed: ${invalid}`);
         return false;
       } catch (error) {
         // Expected to fail
       }
     }
 
-    console.log("✅ CUID validation works correctly");
+    console.log("✅ CUID2 validation works correctly");
     return true;
   } catch (error) {
-    console.error("❌ CUID validation failed:", error instanceof Error ? error.message : error);
+    console.error("❌ CUID2 validation failed:", error instanceof Error ? error.message : error);
     return false;
   }
 }
@@ -553,7 +553,7 @@ function testBatchPhotoSelectionSchema(): boolean {
   console.log("─".repeat(50));
 
   try {
-    // Valid batch selection (using valid CUIDs)
+    // Valid batch selection (using valid CUID2s)
     const valid = batchPhotoSelectionSchema.parse({
       photoIds: [
         "clx1234567890abcdefghij",
@@ -877,7 +877,7 @@ function testValidationPipeline(): boolean {
 
     const pipeline = createValidationPipeline(baseSchema, transformSchema);
 
-    const result = pipeline.parse({ value: "hello" });
+    const result = pipeline.parse({ value: "hello" }) as z.infer<typeof transformSchema>;
     if (result.value !== "HELLO") {
       console.error(`❌ Pipeline transformation failed. Expected "HELLO", got "${result.value}"`);
       return false;
@@ -1031,7 +1031,7 @@ async function runTests() {
   const results: Array<{ name: string; passed: boolean }> = [];
 
   // Run all tests
-  results.push({ name: "CUID Validation", passed: testCuidValidation() });
+  results.push({ name: "CUID2 Validation", passed: testCuid2Validation() });
   results.push({ name: "Email Validation", passed: testEmailValidation() });
   results.push({ name: "Pagination Schema", passed: testPaginationSchema() });
   results.push({ name: "Date Range Schema", passed: testDateRangeSchema() });

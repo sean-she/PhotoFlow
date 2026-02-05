@@ -98,7 +98,7 @@ model Verification {
 /// API tokens and photographer-specific info stored here
 
 model Photographer {
-  id                String    @id @default(cuid())
+  id                String    @id @default(cuid(2))
   userId            String    @unique @map("user_id") // One-to-one with better-auth User
   name              String?   // Display name (can also use User.name)
   apiToken          String?   @map("api_token") // Hashed API token for Lightroom plugin
@@ -119,7 +119,7 @@ model Photographer {
 /// Represents a collection of photos that can be shared with clients
 
 model Album {
-  id            String      @id @default(cuid())
+  id            String      @id @default(cuid(2))
   title         String
   description   String?
   status        AlbumStatus @default(DRAFT)
@@ -142,7 +142,7 @@ model Album {
 /// Contains file metadata, storage references, and EXIF data
 
 model Photo {
-  id                  String   @id @default(cuid())
+  id                  String   @id @default(cuid(2))
   filename            String // Processed/stored filename
   originalFilename    String   @map("original_filename") // Original upload filename
   mimeType            String   @map("mime_type") // e.g., "image/jpeg", "image/png"
@@ -178,7 +178,7 @@ model Photo {
 /// Manages client authentication tokens and access permissions
 
 model AlbumClient {
-  id          String    @id @default(cuid())
+  id          String    @id @default(cuid(2))
   clientName  String    @map("client_name")
   clientEmail String    @map("client_email")
   accessToken String    @unique @map("access_token") // Unique token for client access
@@ -201,7 +201,7 @@ model AlbumClient {
 /// Ensures unique selections per client per photo
 
 model PhotoSelection {
-  id            String   @id @default(cuid())
+  id            String   @id @default(cuid(2))
   photoId       String   @map("photo_id") // Foreign key to Photo
   clientId      String   @map("client_id") // Foreign key to AlbumClient
   selectionDate DateTime @default(now()) @map("selection_date")

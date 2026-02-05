@@ -153,7 +153,7 @@ const pipeline = createValidationPipeline(baseSchema, transformSchema);
 - `accessTokenParamSchema` - Access token parameter
 
 ### Common Schemas
-- `cuidSchema` - CUID validation
+- `cuid2Schema` - CUID2 validation
 - `emailSchema` - Email validation
 - `paginationSchema` - Pagination parameters
 - `dateRangeSchema` - Date range filtering

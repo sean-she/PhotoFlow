@@ -7,10 +7,10 @@
 import { z } from "zod";
 
 /**
- * CUID validation schema
- * Validates CUID format (used by Prisma)
+ * CUID2 validation schema
+ * Validates CUID2 format (used by Prisma)
  */
-export const cuidSchema = z.string().cuid();
+export const cuid2Schema = z.string().cuid2();
 
 /**
  * Email validation schema

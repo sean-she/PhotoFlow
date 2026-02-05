@@ -966,7 +966,7 @@ model User {
 
 // Photographer business data (separate from authentication)
 model Photographer {
-  id                String    @id @default(cuid())
+  id                String    @id @default(cuid(2))
   userId            String    @unique @map("user_id") // One-to-one with better-auth User
   name              String?   // Display name (can also use User.name)
   apiToken          String?   @map("api_token") // Hashed API token for Lightroom plugin
@@ -984,7 +984,7 @@ model Photographer {
 }
 
 model Album {
-  id            String        @id @default(cuid())
+  id            String        @id @default(cuid(2))
   photographerId String       @map("photographer_id") // References Photographer, not User
   photographer  Photographer  @relation(fields: [photographerId], references: [id], onDelete: Cascade)
   title         String
@@ -998,7 +998,7 @@ model Album {
 }
 
 model Photo {
-  id           String   @id @default(cuid())
+  id           String   @id @default(cuid(2))
   albumId      String
   album        Album    @relation(fields: [albumId], references: [id])
   filename     String
@@ -1012,7 +1012,7 @@ model Photo {
 }
 
 model AlbumClient {
-  id           String   @id @default(cuid())
+  id           String   @id @default(cuid(2))
   albumId      String
   album        Album    @relation(fields: [albumId], references: [id])
   email        String
@@ -1025,7 +1025,7 @@ model AlbumClient {
 }
 
 model PhotoSelection {
-  id         String      @id @default(cuid())
+  id         String      @id @default(cuid(2))
   photoId    String
   photo      Photo       @relation(fields: [photoId], references: [id])
   clientId   String
