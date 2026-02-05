@@ -368,17 +368,18 @@
           "2",
           "3"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
             "title": "Implement Presigned URL Generation API",
             "description": "Create API endpoint to generate presigned R2 PUT URLs for direct photo uploads from Lightroom plugin.",
             "dependencies": [],
-            "details": "Create Next.js route handler in app/api/photos/presigned-url/route.ts that generates presigned R2 PUT URLs. Use @aws-sdk/s3-request-presigner with PutObjectCommand to create presigned URLs (1 hour expiration). Accept request body: albumId, filename, contentType, fileSize. Validate photographer authentication using requireApiToken() middleware for Lightroom plugin. Validate file type (JPG, PNG, TIFF, RAW), file size (max 100MB), and album ownership. Generate unique storage key using existing path generation utilities from lib/storage/paths.ts. Return: presignedUrl, photoId (pre-generated), storageKey, expiresAt. Create database record with status='uploading' to track pending uploads. Use existing R2 client from lib/storage/r2-config.ts. Handle errors using NextResponse.json with proper status codes.",
-            "status": "pending",
+            "details": "Create Next.js route handler in app/api/photos/presigned-url/route.ts that generates presigned R2 PUT URLs. Use @aws-sdk/s3-request-presigner with PutObjectCommand to create presigned URLs (1 hour expiration). Accept request body: albumId, filename, contentType, fileSize. Validate photographer authentication using requireApiToken() middleware for Lightroom plugin. Validate file type (JPG, PNG, TIFF, RAW), file size (max 100MB), and album ownership. Generate unique storage key using existing path generation utilities from lib/storage/paths.ts. Return: presignedUrl, photoId (pre-generated), storageKey, expiresAt. Create database record with status='uploading' to track pending uploads. Use existing R2 client from lib/storage/r2-config.ts. Handle errors using NextResponse.json with proper status codes.\n<info added on 2026-02-05T04:13:32.719Z>\nImplementation completed successfully. The presigned URL generation API endpoint has been created with all required functionality:\n\n- Created `/api/photos/presigned-url/route.ts` endpoint with proper authentication and validation\n- Added `requireApiToken()` function to `guards.ts` for API token authentication\n- Extended photo validation schema to include various RAW formats (CR2, NEF, ARW, etc.)\n- Implemented comprehensive validation for album ownership, file types, and size limits\n- Generated presigned URLs with metadata and 1-hour expiration\n- Created database records with pre-generated photoIds and appropriate storage keys\n- Structured response with presignedUrl, photoId, storageKey, and expiresAt\n\nAll validation, authentication, and error handling requirements have been met. The endpoint is ready for testing with various file types and sizes before moving to the next subtask.\n</info added on 2026-02-05T04:13:32.719Z>",
+            "status": "done",
             "testStrategy": "Unit tests for presigned URL generation, validation logic tests for file types and sizes, integration tests with R2 to verify URLs work, security tests for authentication and authorization, edge cases for invalid album IDs or expired tokens.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-05T04:13:44.103Z"
           },
           {
             "id": 2,
@@ -430,7 +431,8 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Expand the pipeline into presigned URL generation, upload confirmation, Cloudflare Images integration, delta sync detection, and Photo model updates. For each subtask, detail the API endpoints, authentication, and test cases for direct-to-storage upload patterns."
+        "expansionPrompt": "Expand the pipeline into presigned URL generation, upload confirmation, Cloudflare Images integration, delta sync detection, and Photo model updates. For each subtask, detail the API endpoints, authentication, and test cases for direct-to-storage upload patterns.",
+        "updatedAt": "2026-02-05T04:13:44.103Z"
       },
       {
         "id": "6",
@@ -1092,7 +1094,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T04:21:19.147Z",
+      "lastModified": "2026-02-05T04:13:44.103Z",
       "taskCount": 15,
       "completedCount": 4,
       "tags": [

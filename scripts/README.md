@@ -658,6 +658,153 @@ The script will output:
 
 ---
 
+## Client Access Route Manual Testing Helper
+
+Helper script for manually testing the `/api/client/[token]` route handler by creating test data and providing testing instructions.
+
+### Running the Script
+
+```bash
+npm run test:client-route
+```
+
+Or directly with tsx:
+
+```bash
+tsx scripts/test-client-route-manual.ts
+```
+
+### What It Does
+
+1. **Creates Test Data**:
+   - Test User (better-auth User)
+   - Test Photographer (linked to User)
+   - Test Album (OPEN status)
+   - Test Photos (3 sample photos)
+   - Test AlbumClient with secure access token
+   - Test PhotoSelection (one photo selected)
+
+2. **Provides Testing Instructions**:
+   - Prints the generated access token
+   - Provides curl commands ready to copy/paste
+   - Lists multiple testing methods (curl, browser, fetch)
+   - Includes test data summary with all IDs
+
+3. **Cleanup Instructions**:
+   - Shows how to clean up test data using the cleanup script
+
+### Expected Output
+
+The script will output:
+- Step-by-step creation of test data
+- Complete testing instructions with the token
+- Test data summary (IDs, names, counts)
+- Cleanup command with the client ID
+
+### Usage Workflow
+
+1. **Create test data**:
+   ```bash
+   npm run test:client-route
+   ```
+
+2. **Start dev server** (in another terminal):
+   ```bash
+   npm run dev
+   ```
+
+3. **Test the route** using the token provided:
+   ```bash
+   curl http://localhost:3000/api/client/[TOKEN_FROM_SCRIPT]
+   ```
+
+4. **Clean up** when done:
+   ```bash
+   npm run cleanup:test-data [CLIENT_ID]
+   ```
+
+### Prerequisites
+
+- Database connection configured in `.env` file
+- Prisma client generated (`npm run db:generate`)
+- Database migrations applied (`npm run db:migrate`)
+
+---
+
+## Test Data Cleanup Script
+
+Utility script for cleaning up test data created by manual testing scripts.
+
+### Running the Script
+
+```bash
+# Clean up specific client (and related data)
+npm run cleanup:test-data [CLIENT_ID]
+
+# Clean up all test data (users/photographers/albums/clients with "test" in name/email)
+npm run cleanup:test-data
+```
+
+Or directly with tsx:
+
+```bash
+tsx scripts/cleanup-test-data.ts [CLIENT_ID]
+```
+
+### What It Does
+
+**With Client ID:**
+- Deletes the specified AlbumClient and all related data:
+  - Photo selections for the client
+  - The AlbumClient record
+  - All photos in the album
+  - The Album record
+  - The Photographer record
+  - The User record
+
+**Without Client ID:**
+- Finds all test users (email contains "test-")
+- Deletes all related data for each test user:
+  - Photo selections
+  - AlbumClients
+  - Photos
+  - Albums
+  - Photographers
+  - Users
+
+### Expected Output
+
+The script will output:
+- ✅ for successful deletions
+- ⚠️ for warnings (e.g., client not found)
+- Summary of what was cleaned up
+
+### Usage Examples
+
+**Clean up specific test client:**
+```bash
+npm run cleanup:test-data cml63mpuj0005wyp1xgutwfdt
+```
+
+**Clean up all test data:**
+```bash
+npm run cleanup:test-data
+```
+
+### Prerequisites
+
+- Database connection configured in `.env` file
+- Prisma client generated (`npm run db:generate`)
+- Test data must exist in the database
+
+### Notes
+
+- Deletes data in the correct order to respect foreign key constraints
+- Safe to run multiple times (idempotent)
+- Only deletes test data (identified by "test-" in email/name patterns)
+
+---
+
 ## Troubleshooting
 
 ### Common Issues

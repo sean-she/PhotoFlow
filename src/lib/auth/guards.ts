@@ -11,6 +11,8 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { AuthenticationError } from "@/lib/errors/authentication";
+import { validateApiToken } from "./api-token";
+import type { Photographer, User } from "@/generated/prisma/client";
 
 /**
  * Get the current session from better-auth
@@ -115,3 +117,30 @@ export async function getPhotographer(request: NextRequest) {
   };
 }
 
+/**
+ * Require API token authentication for Lightroom plugin
+ * Validates Bearer token from Authorization header
+ * 
+ * @param request - Next.js request object
+ * @returns Object with user and photographer data
+ * @throws AuthenticationError if token is missing or invalid
+ */
+export async function requireApiToken(
+  request: NextRequest
+): Promise<{ user: User; photographer: Photographer }> {
+  const authHeader = request.headers.get("authorization");
+  
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new AuthenticationError("API token required. Use 'Authorization: Bearer <token>' header");
+  }
+  
+  const token = authHeader.substring(7); // Remove "Bearer " prefix
+  
+  const validation = await validateApiToken(token);
+  
+  if (!validation) {
+    throw new AuthenticationError("Invalid or expired API token");
+  }
+  
+  return validation;
+}

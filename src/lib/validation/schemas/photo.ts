@@ -8,7 +8,7 @@ import { z } from "zod";
 import { cuidSchema } from "./common";
 
 /**
- * MIME type validation for images
+ * MIME type validation for images (including RAW formats)
  */
 export const imageMimeTypeSchema = z.enum([
   "image/jpeg",
@@ -17,6 +17,34 @@ export const imageMimeTypeSchema = z.enum([
   "image/tiff",
   "image/webp",
   "image/gif",
+]);
+
+/**
+ * Extended MIME type validation for photo uploads (includes RAW formats)
+ */
+export const photoMimeTypeSchema = z.enum([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/tiff",
+  "image/webp",
+  "image/gif",
+  // RAW formats
+  "image/x-canon-cr2",
+  "image/x-nikon-nef",
+  "image/x-sony-arw",
+  "image/x-fuji-raf",
+  "image/x-olympus-orf",
+  "image/x-panasonic-rw2",
+  "image/x-adobe-dng",
+  "image/x-pentax-pef",
+  "image/x-kodak-dcr",
+  "image/x-kodak-k25",
+  "image/x-kodak-kdc",
+  "image/x-minolta-mrw",
+  "image/x-sony-srf",
+  "image/x-sony-sr2",
+  "application/octet-stream", // Fallback for unrecognized RAW formats
 ]);
 
 /**
@@ -101,3 +129,15 @@ export const photoQuerySchema = z.object({
 
 export type PhotoQueryInput = z.infer<typeof photoQuerySchema>;
 
+/**
+ * Presigned URL request schema
+ * Used for requesting presigned URLs for direct photo uploads
+ */
+export const presignedUrlRequestSchema = z.object({
+  albumId: cuidSchema,
+  filename: z.string().min(1).max(500),
+  contentType: photoMimeTypeSchema,
+  fileSize: z.number().int().positive().max(100 * 1024 * 1024), // Max 100MB
+});
+
+export type PresignedUrlRequestInput = z.infer<typeof presignedUrlRequestSchema>;

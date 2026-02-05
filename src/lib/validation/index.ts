@@ -43,6 +43,7 @@ export type {
   UpdatePhotoInput,
   PhotoIdInput,
   PhotoQueryInput,
+  PresignedUrlRequestInput,
 } from "./schemas/photo";
 
 // Client schemas
