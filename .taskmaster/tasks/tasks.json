@@ -388,10 +388,11 @@
             "dependencies": [
               1
             ],
-            "details": "Create Next.js route handler in app/api/photos/confirm-upload/route.ts. Accept request body: photoId, albumId, metadata (width, height, size, EXIF data). Validate photographer authentication using requireApiToken(). Verify file exists in R2 at expected storageKey using existing fileExists() utility from lib/storage/organization.ts. Extract and store EXIF metadata (camera make/model, capture date, ISO, aperture, etc.) if provided by plugin. Update Photo database record: set status='completed', store metadata, set uploadedAt timestamp. Use Prisma transaction to ensure atomicity. If file doesn't exist in R2, return error and keep status='uploading' for retry. Return confirmation with storage key and CDN URL. Handle errors using NextResponse.json.",
-            "status": "pending",
+            "details": "Create Next.js route handler in app/api/photos/confirm-upload/route.ts. Accept request body: photoId, albumId, metadata (width, height, size, EXIF data). Validate photographer authentication using requireApiToken(). Verify file exists in R2 at expected storageKey using existing fileExists() utility from lib/storage/organization.ts. Extract and store EXIF metadata (camera make/model, capture date, ISO, aperture, etc.) if provided by plugin. Update Photo database record: set status='completed', store metadata, set uploadedAt timestamp. Use Prisma transaction to ensure atomicity. If file doesn't exist in R2, return error and keep status='uploading' for retry. Return confirmation with storage key and CDN URL. Handle errors using NextResponse.json.\n<info added on 2026-02-05T06:11:53.428Z>\nImplementation completed successfully. Created upload confirmation endpoint at `/api/photos/confirm-upload/route.ts`.\n\n**Key Features Implemented:**\n1. Authentication using `requireApiToken()` for photographer verification\n2. Request validation with new `uploadConfirmationRequestSchema` (photoId, albumId, optional metadata, optional EXIF)\n3. Photo existence and ownership verification (checks photo belongs to photographer's album)\n4. File existence verification in R2 using `fileExists()` utility from `lib/storage/organization.ts`\n5. EXIF metadata extraction and storage (camera make/model, date, ISO, focal length, aperture, shutter speed)\n6. Photo record update with metadata (width, height, size) and EXIF data\n7. Prisma transaction for atomicity\n8. CDN URL generation using `generateCdnUrl()` from `lib/storage/cdn.ts`\n9. Comprehensive error handling (NotFoundError for missing files, AuthorizationError for ownership issues)\n10. Response includes confirmation with storage key, CDN URL, and all metadata\n\n**Implementation Details:**\n- Added `uploadConfirmationRequestSchema` to `lib/validation/schemas/photo.ts`\n- Created route handler with proper error handling and logging middleware\n- Validates photo exists and belongs to photographer before processing\n- Returns error if file doesn't exist in R2 (allows retry without changing status)\n- Only updates fields that are explicitly provided (doesn't overwrite with null/undefined)\n- Uses Prisma transaction to ensure atomic updates\n- Generates public CDN URL for the confirmed photo\n\n**Note:** Status field doesn't exist in Photo schema yet, so we're not setting status='completed'. When the status field is added via migration, we should update this endpoint to set status='completed' upon successful confirmation.\n\n**Ready for Testing:**\n- Integration tests for confirmation flow\n- Tests for missing files in R2\n- EXIF metadata storage tests\n- Database transaction tests\n- Edge cases for duplicate confirmations or invalid photoIds\n</info added on 2026-02-05T06:11:53.428Z>",
+            "status": "done",
             "testStrategy": "Integration tests for confirmation flow, tests for missing files in R2, EXIF metadata storage tests, database transaction tests, edge cases for duplicate confirmations or invalid photoIds.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-05T06:11:53.905Z"
           },
           {
             "id": 3,
@@ -432,7 +433,7 @@
         "complexity": 7,
         "recommendedSubtasks": 5,
         "expansionPrompt": "Expand the pipeline into presigned URL generation, upload confirmation, Cloudflare Images integration, delta sync detection, and Photo model updates. For each subtask, detail the API endpoints, authentication, and test cases for direct-to-storage upload patterns.",
-        "updatedAt": "2026-02-05T04:13:44.103Z"
+        "updatedAt": "2026-02-05T06:11:53.905Z"
       },
       {
         "id": "6",
@@ -1094,7 +1095,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-05T04:13:44.103Z",
+      "lastModified": "2026-02-05T06:11:53.905Z",
       "taskCount": 15,
       "completedCount": 4,
       "tags": [

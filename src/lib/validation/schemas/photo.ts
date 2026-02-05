@@ -141,3 +141,20 @@ export const presignedUrlRequestSchema = z.object({
 });
 
 export type PresignedUrlRequestInput = z.infer<typeof presignedUrlRequestSchema>;
+
+/**
+ * Upload confirmation request schema
+ * Used for confirming successful upload after direct-to-R2 upload completes
+ */
+export const uploadConfirmationRequestSchema = z.object({
+  photoId: cuid2Schema,
+  albumId: cuid2Schema,
+  metadata: z.object({
+    width: z.number().int().positive().optional(),
+    height: z.number().int().positive().optional(),
+    size: z.number().int().positive().optional(), // Actual uploaded file size
+  }).optional(),
+  exif: exifMetadataSchema.optional(),
+});
+
+export type UploadConfirmationRequestInput = z.infer<typeof uploadConfirmationRequestSchema>;
